@@ -120,39 +120,11 @@ class AutoUpdateService {
    */
   async initialize(): Promise<void> {
     if (this.initialized) return;
-
-    // Skip auto-updates in development - always
-    const isDev = !app.isPackaged || process.env.NODE_ENV === 'development';
-    if (isDev) {
-      // Silent in dev - no logs
-      this.initialized = true;
-      return;
-    }
-
     this.initialized = true;
 
-    // Setup and configure autoUpdater only for production
-    this.setupAutoUpdater();
-
-    // Load settings from database
-    await this.loadSettings();
-
-    // Configure auto-updater based on settings
-    this.applySettings();
-
-    // Setup event listeners
-    this.setupEventListeners();
-
-    // Schedule initial update check after startup delay
-    if (this.settings.autoCheck) {
-      this.scheduleUpdateCheck(UPDATE_CHECK_INTERVALS.startup);
-    }
-
-    log.info('AutoUpdateService initialized', {
+    // Auto-updates disabled in this fork
+    log.info('AutoUpdateService disabled (fork)', {
       version: this.updateState.currentVersion,
-      channel: this.settings.channel,
-      autoCheck: this.settings.autoCheck,
-      autoDownload: this.settings.autoDownload,
     });
   }
 
