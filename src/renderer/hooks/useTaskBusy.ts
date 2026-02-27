@@ -1,6 +1,26 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { activityStore } from '../lib/activityStore';
 
+export type TaskStatus = 'running' | 'awaiting_input' | 'idle';
+
+/**
+ * Returns the classified status for a single task: running, awaiting_input, or idle.
+ */
+export function useTaskStatus(taskId: string): TaskStatus {
+  const [status, setStatus] = useState<TaskStatus>('idle');
+
+  useEffect(() => {
+    return activityStore.subscribe(taskId, (busy) => {
+      const sig = activityStore.getLastSignal(taskId);
+      if (sig === 'awaiting_input') setStatus('awaiting_input');
+      else if (busy) setStatus('running');
+      else setStatus('idle');
+    }, { kinds: ['main'] });
+  }, [taskId]);
+
+  return status;
+}
+
 const CONVERSATIONS_CHANGED_EVENT = 'emdash:conversations-changed';
 
 export function useTaskBusy(taskId: string) {

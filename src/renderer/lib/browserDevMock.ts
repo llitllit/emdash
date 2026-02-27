@@ -91,6 +91,17 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
       createdAt: now,
       updatedAt: now,
     },
+    {
+      id: 'task-6',
+      projectId: 'proj-2',
+      name: 'Review PR changes',
+      branch: 'feat/review',
+      path: '/Users/dev/api-server/.worktrees/review-pr-changes',
+      status: 'active' as const,
+      agentId: 'claude',
+      createdAt: now,
+      updatedAt: now,
+    },
   ];
 
   const MOCK_ARCHIVED_TASKS = [
@@ -179,6 +190,9 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
       } else if (id.includes('task-3')) {
         // task-3 is "active" — emit awaiting_input signal
         timer = setTimeout(() => listener('Do you want to proceed? [y/n]\r\n'), 900);
+      } else if (id.includes('task-6')) {
+        // task-6 is "active" — emit awaiting_input signal (orange gradient)
+        timer = setTimeout(() => listener('Allow this edit? [y/n]\r\n'), 1200);
       }
       return () => { if (timer) clearTimeout(timer); };
     },

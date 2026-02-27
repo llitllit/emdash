@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
@@ -14,6 +15,7 @@ import {
   SidebarMenuButton,
   useSidebar,
 } from './ui/sidebar';
+import { formatShortcut, APP_SHORTCUTS } from '../hooks/useKeyboardShortcuts';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from './ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -33,7 +35,7 @@ import SidebarEmptyState from './SidebarEmptyState';
 import { TaskItem } from './TaskItem';
 import { RemoteProjectIndicator } from './ssh/RemoteProjectIndicator';
 import { useRemoteProject } from '../hooks/useRemoteProject';
-import { useProjectStatus, type ProjectStatus } from '../hooks/useTaskBusy';
+import { useProjectStatus, useTaskStatus, type ProjectStatus } from '../hooks/useTaskBusy';
 import type { Project } from '../types/app';
 import type { Task } from '../types/chat';
 import type { ConnectionState } from './ssh';
@@ -214,7 +216,7 @@ const ProjectRow: React.FC<ProjectRowProps> = ({
     projectStatus === 'awaiting_input'
       ? 'bg-gradient-to-r from-orange-500/[0.08] to-transparent'
       : projectStatus === 'running'
-        ? 'bg-gradient-to-r from-blue-500/[0.06] to-transparent'
+        ? 'bg-gradient-to-r from-sky-400/[0.10] to-transparent'
         : '';
 
   return (
@@ -342,10 +344,10 @@ const ProjectRow: React.FC<ProjectRowProps> = ({
                 .map((task) => {
                   const isActive = activeTask?.id === task.id;
                   return (
-                    <motion.div
+                    <TaskRow
                       key={task.id}
-                      whileTap={{ scale: 0.97 }}
-                      transition={{ duration: 0.1, ease: 'easeInOut' }}
+                      task={task}
+                      isActive={isActive}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleNavigationWithCloseSettings(() => {
@@ -358,10 +360,6 @@ const ProjectRow: React.FC<ProjectRowProps> = ({
                           onSelectTask && onSelectTask(task);
                         });
                       }}
-                      className={`group/task min-w-0 rounded-md py-1.5 pl-1 pr-2 hover:bg-accent ${
-                        isActive ? 'bg-black/[0.06] dark:bg-white/[0.08]' : ''
-                      }`}
-                      title={task.name}
                     >
                       <TaskItem
                         task={task}
@@ -381,7 +379,7 @@ const ProjectRow: React.FC<ProjectRowProps> = ({
                             : undefined
                         }
                       />
-                    </motion.div>
+                    </TaskRow>
                   );
                 })}
             </div>
@@ -430,6 +428,36 @@ const ProjectRow: React.FC<ProjectRowProps> = ({
         </CollapsibleContent>
       </Collapsible>
     </SidebarMenuItem>
+  );
+};
+
+// Wrapper so task rows can call useTaskStatus (hooks can't be called inside .map())
+const TaskRow: React.FC<{
+  task: Task;
+  isActive: boolean;
+  onClick: (e: React.MouseEvent) => void;
+  children: React.ReactNode;
+}> = ({ task, isActive, onClick, children }) => {
+  const taskStatus = useTaskStatus(task.id);
+  const taskGradient =
+    taskStatus === 'awaiting_input'
+      ? 'bg-gradient-to-r from-orange-500/[0.08] to-transparent'
+      : taskStatus === 'running'
+        ? 'bg-gradient-to-r from-sky-400/[0.10] to-transparent'
+        : '';
+
+  return (
+    <motion.div
+      whileTap={{ scale: 0.97 }}
+      transition={{ duration: 0.1, ease: 'easeInOut' }}
+      onClick={onClick}
+      className={`group/task min-w-0 rounded-md py-1.5 pl-1 pr-2 hover:bg-accent ${
+        isActive ? 'bg-black/[0.06] dark:bg-white/[0.08]' : ''
+      } ${taskGradient}`}
+      title={task.name}
+    >
+      {children}
+    </motion.div>
   );
 };
 
@@ -659,6 +687,30 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
             </div>
           )}
         </SidebarContent>
+        {projects.length > 0 && (
+          <SidebarFooter className="px-3 py-2">
+            <div className="flex flex-col gap-1 text-[11px] text-muted-foreground/60">
+              <div className="flex items-center justify-between">
+                <span>Next/prev task</span>
+                <span className="font-mono">{formatShortcut(APP_SHORTCUTS.NEXT_TASK)} / {formatShortcut(APP_SHORTCUTS.PREV_TASK)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-sky-400" />
+                  Active tasks
+                </span>
+                <span className="font-mono">{formatShortcut(APP_SHORTCUTS.NEXT_ACTIVE_TASK)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-orange-500" />
+                  Needs input
+                </span>
+                <span className="font-mono">{formatShortcut(APP_SHORTCUTS.NEXT_NEEDS_INPUT)}</span>
+              </div>
+            </div>
+          </SidebarFooter>
+        )}
       </Sidebar>
     </div>
   );
