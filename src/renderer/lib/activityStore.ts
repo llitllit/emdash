@@ -1,4 +1,4 @@
-import { classifyActivity } from './activityClassifier';
+import { classifyActivity, type ActivitySignal } from './activityClassifier';
 import { CLEAR_BUSY_MS, BUSY_HOLD_MS } from './activityConstants';
 import { type PtyIdKind, parsePtyId, makePtyId } from '@shared/ptyId';
 import { PROVIDER_IDS } from '@shared/providers/registry';
@@ -8,6 +8,7 @@ type Listener = (busy: boolean) => void;
 class ActivityStore {
   private listeners = new Map<string, Set<Listener>>();
   private states = new Map<string, boolean>();
+  private lastSignals = new Map<string, ActivitySignal>();
   private timers = new Map<string, ReturnType<typeof setTimeout>>();
   private busySince = new Map<string, number>();
   private subscribed = false;
@@ -25,8 +26,11 @@ class ActivityStore {
           if (!id.endsWith(wsId)) continue;
           const prov = parsePtyId(id)?.providerId || '';
           const signal = classifyActivity(prov, info?.chunk || '');
+          if (signal !== 'neutral') this.lastSignals.set(wsId, signal);
           if (signal === 'busy') {
             this.setBusy(wsId, true, true);
+          } else if (signal === 'awaiting_input') {
+            this.setBusy(wsId, false, true);
           } else if (signal === 'idle') {
             this.setBusy(wsId, false, true);
           } else {
@@ -40,7 +44,10 @@ class ActivityStore {
       try {
         const id = String(info?.id || '');
         for (const wsId of this.subscribedIds) {
-          if (id.endsWith(wsId)) this.setBusy(wsId, false, true);
+          if (id.endsWith(wsId)) {
+            this.lastSignals.set(wsId, 'idle');
+            this.setBusy(wsId, false, true);
+          }
         }
       } catch {}
     });
@@ -104,6 +111,10 @@ class ActivityStore {
     }
   }
 
+  getLastSignal(wsId: string): ActivitySignal {
+    return this.lastSignals.get(wsId) || 'idle';
+  }
+
   setTaskBusy(wsId: string, busy: boolean) {
     this.setBusy(wsId, busy, false);
   }
@@ -131,14 +142,20 @@ class ActivityStore {
           const off = api?.onPtyData?.(ptyId, (chunk: string) => {
             try {
               const signal = classifyActivity(prov, chunk || '');
-              if (signal === 'busy') this.setBusy(wsId, true, true);
-              else if (signal === 'idle') this.setBusy(wsId, false, true);
-              else if (this.states.get(wsId)) this.armTimer(wsId);
+              if (signal !== 'neutral') this.lastSignals.set(wsId, signal);
+              if (signal === 'busy') {
+                this.setBusy(wsId, true, true);
+              } else if (signal === 'awaiting_input') {
+                this.setBusy(wsId, false, true);
+              } else if (signal === 'idle') {
+                this.setBusy(wsId, false, true);
+              } else if (this.states.get(wsId)) this.armTimer(wsId);
             } catch {}
           });
           if (off) offDirect.push(off);
           const offExit = api?.onPtyExit?.(ptyId, () => {
             try {
+              this.lastSignals.set(wsId, 'idle');
               this.setBusy(wsId, false, true);
             } catch {}
           });

@@ -26,11 +26,14 @@ import {
   Github,
   Server,
   Puzzle,
+  Archive,
+  ArchiveRestore,
 } from 'lucide-react';
 import SidebarEmptyState from './SidebarEmptyState';
 import { TaskItem } from './TaskItem';
 import { RemoteProjectIndicator } from './ssh/RemoteProjectIndicator';
 import { useRemoteProject } from '../hooks/useRemoteProject';
+import { useProjectStatus, type ProjectStatus } from '../hooks/useTaskBusy';
 import type { Project } from '../types/app';
 import type { Task } from '../types/chat';
 import type { ConnectionState } from './ssh';
@@ -102,6 +105,33 @@ const RemoteIndicator: React.FC<{ project: Project }> = ({ project }) => {
   );
 };
 
+// Hook to get project status from task IDs
+const useProjectStatusFromTasks = (tasks: Task[] | undefined): ProjectStatus => {
+  const taskIds = React.useMemo(() => (tasks || []).map((t) => t.id), [tasks]);
+  return useProjectStatus(taskIds);
+};
+
+// Hook to fetch archived tasks for a project
+const useArchivedTasks = (projectId: string, version?: number) => {
+  const [archivedTasks, setArchivedTasks] = React.useState<Task[]>([]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const fetch = async () => {
+      try {
+        const result = await window.electronAPI.getArchivedTasks(projectId);
+        if (!cancelled && Array.isArray(result)) {
+          setArchivedTasks(result);
+        }
+      } catch {}
+    };
+    void fetch();
+    return () => { cancelled = true; };
+  }, [projectId, version]);
+
+  return archivedTasks;
+};
+
 const MenuItemButton: React.FC<MenuItemButtonProps> = ({
   icon: Icon,
   label,
@@ -134,9 +164,278 @@ const MenuItemButton: React.FC<MenuItemButtonProps> = ({
   );
 };
 
+// Extracted project row component so hooks can be used per-project
+interface ProjectRowProps {
+  project: Project;
+  isProjectActive: boolean;
+  activeTask?: Task | null;
+  selectedProject: Project | null;
+  forceOpenIds: Set<string>;
+  setForceOpenIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  pinnedTaskIds?: Set<string>;
+  onPinTask?: (task: Task) => void;
+  onSelectProject: (project: Project) => void;
+  onSelectTask?: (task: Task) => void;
+  onCreateTaskForProject?: (project: Project) => void;
+  onRenameTask?: (project: Project, task: Task, newName: string) => void | Promise<void>;
+  onArchiveTask?: (project: Project, task: Task) => void | Promise<void | boolean>;
+  onRestoreTask?: (project: Project, task: Task) => void | Promise<void>;
+  handleNavigationWithCloseSettings: (callback: () => void) => void;
+  showArchived: boolean;
+  onToggleArchived: () => void;
+  archivedTasksVersion?: number;
+}
+
+const ProjectRow: React.FC<ProjectRowProps> = ({
+  project: typedProject,
+  isProjectActive,
+  activeTask,
+  selectedProject,
+  forceOpenIds,
+  setForceOpenIds,
+  pinnedTaskIds,
+  onPinTask,
+  onSelectProject,
+  onSelectTask,
+  onCreateTaskForProject,
+  onRenameTask,
+  onArchiveTask,
+  onRestoreTask,
+  handleNavigationWithCloseSettings,
+  showArchived,
+  onToggleArchived,
+  archivedTasksVersion,
+}) => {
+  const projectIsRemote = isRemoteProject(typedProject);
+  const projectStatus = useProjectStatusFromTasks(typedProject.tasks);
+  const archivedTasks = useArchivedTasks(typedProject.id, archivedTasksVersion);
+
+  const statusGradient =
+    projectStatus === 'awaiting_input'
+      ? 'bg-gradient-to-r from-orange-500/[0.08] to-transparent'
+      : projectStatus === 'running'
+        ? 'bg-gradient-to-r from-blue-500/[0.06] to-transparent'
+        : '';
+
+  return (
+    <SidebarMenuItem>
+      <Collapsible
+        defaultOpen
+        open={forceOpenIds.has(typedProject.id) ? true : undefined}
+        onOpenChange={() => {
+          if (forceOpenIds.has(typedProject.id)) {
+            setForceOpenIds((s) => {
+              const next = new Set(s);
+              next.delete(typedProject.id);
+              return next;
+            });
+          }
+        }}
+        className="group/collapsible"
+      >
+        <div
+          className={`group/project relative flex w-full min-w-0 items-center gap-1.5 rounded-md py-1.5 pl-1 pr-1 text-sm font-medium hover:bg-accent ${
+            isProjectActive ? 'bg-black/[0.06] dark:bg-white/[0.08]' : ''
+          } ${statusGradient}`}
+          title={projectIsRemote ? 'Remote Project' : undefined}
+        >
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="flex-shrink-0 rounded p-0.5 outline-none hover:bg-black/5 focus-visible:outline-none dark:hover:bg-white/5"
+              onClick={(e) => e.stopPropagation()}
+              aria-label={`Toggle tasks for ${typedProject.name}`}
+            >
+              <FolderOpen className="hidden h-4 w-4 text-foreground/60 group-data-[state=open]/collapsible:block" />
+              <FolderClosed className="block h-4 w-4 text-foreground/60 group-data-[state=open]/collapsible:hidden" />
+            </button>
+          </CollapsibleTrigger>
+          <motion.button
+            type="button"
+            className="min-w-0 flex-1 cursor-default truncate bg-transparent text-left text-foreground/60 outline-none focus-visible:outline-none"
+            whileTap={{ scale: 0.97 }}
+            transition={{ duration: 0.1, ease: 'easeInOut' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNavigationWithCloseSettings(() =>
+                onSelectProject(typedProject)
+              );
+            }}
+          >
+            {typedProject.name}
+          </motion.button>
+          {projectIsRemote && <RemoteIndicator project={typedProject} />}
+          <div className="flex min-w-7 flex-shrink-0 items-center justify-end gap-0.5">
+            {archivedTasks.length > 0 && (
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className={`flex-shrink-0 rounded p-0.5 text-muted-foreground outline-none hover:bg-black/5 focus-visible:outline-none dark:hover:bg-white/5 ${
+                        showArchived ? 'opacity-100' : 'opacity-0 group-hover/project:opacity-100'
+                      } transition-opacity`}
+                      aria-label={showArchived ? 'Hide archived tasks' : 'Show archived tasks'}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleArchived();
+                      }}
+                    >
+                      {showArchived ? (
+                        <ArchiveRestore className="h-3.5 w-3.5" />
+                      ) : (
+                        <Archive className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" sideOffset={4}>
+                    {showArchived ? 'Hide archived' : `Archived (${archivedTasks.length})`}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            {onCreateTaskForProject && (
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex-shrink-0 rounded p-0.5 text-muted-foreground outline-none hover:bg-black/5 focus-visible:outline-none dark:hover:bg-white/5"
+                      aria-label={`New Task for ${typedProject.name}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNavigationWithCloseSettings(() => {
+                          if (
+                            onSelectProject &&
+                            selectedProject?.id !== typedProject.id
+                          ) {
+                            onSelectProject(typedProject);
+                          } else if (!selectedProject) {
+                            onSelectProject?.(typedProject);
+                          }
+                          onCreateTaskForProject(typedProject);
+                        });
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" sideOffset={4}>
+                    New Task
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+        </div>
+
+        <CollapsibleContent asChild>
+          <div className="mt-1 min-w-0">
+            <div className="flex min-w-0 flex-col gap-1">
+              {typedProject.tasks
+                ?.slice()
+                .sort((a, b) => {
+                  const aPinned = pinnedTaskIds?.has(a.id) ? 1 : 0;
+                  const bPinned = pinnedTaskIds?.has(b.id) ? 1 : 0;
+                  return bPinned - aPinned;
+                })
+                .map((task) => {
+                  const isActive = activeTask?.id === task.id;
+                  return (
+                    <motion.div
+                      key={task.id}
+                      whileTap={{ scale: 0.97 }}
+                      transition={{ duration: 0.1, ease: 'easeInOut' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNavigationWithCloseSettings(() => {
+                          if (
+                            onSelectProject &&
+                            selectedProject?.id !== typedProject.id
+                          ) {
+                            onSelectProject(typedProject);
+                          }
+                          onSelectTask && onSelectTask(task);
+                        });
+                      }}
+                      className={`group/task min-w-0 rounded-md py-1.5 pl-1 pr-2 hover:bg-accent ${
+                        isActive ? 'bg-black/[0.06] dark:bg-white/[0.08]' : ''
+                      }`}
+                      title={task.name}
+                    >
+                      <TaskItem
+                        task={task}
+                        showDelete={false}
+                        showDirectBadge={false}
+                        isPinned={pinnedTaskIds?.has(task.id)}
+                        onPin={onPinTask ? () => onPinTask(task) : undefined}
+                        onRename={
+                          onRenameTask && !task.metadata?.multiAgent?.enabled
+                            ? (newName) =>
+                                onRenameTask(typedProject, task, newName)
+                            : undefined
+                        }
+                        onArchive={
+                          onArchiveTask
+                            ? () => onArchiveTask(typedProject, task)
+                            : undefined
+                        }
+                      />
+                    </motion.div>
+                  );
+                })}
+            </div>
+            {showArchived && archivedTasks.length > 0 && (
+              <div className="mt-2">
+                <div className="mb-1 px-1 text-xs font-medium text-muted-foreground/50">
+                  Archived ({archivedTasks.length})
+                </div>
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  {archivedTasks.map((task) => (
+                    <motion.div
+                      key={task.id}
+                      whileTap={{ scale: 0.97 }}
+                      transition={{ duration: 0.1, ease: 'easeInOut' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNavigationWithCloseSettings(() => {
+                          if (
+                            onSelectProject &&
+                            selectedProject?.id !== typedProject.id
+                          ) {
+                            onSelectProject(typedProject);
+                          }
+                          onSelectTask && onSelectTask(task);
+                        });
+                      }}
+                      className="group/task min-w-0 rounded-md py-1 pl-1 pr-2 opacity-50 hover:bg-accent hover:opacity-75"
+                      title={task.name}
+                    >
+                      <TaskItem
+                        task={task}
+                        showDelete={false}
+                        showDirectBadge={false}
+                        onArchive={
+                          onRestoreTask
+                            ? () => onRestoreTask(typedProject, task)
+                            : undefined
+                        }
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </SidebarMenuItem>
+  );
+};
+
 const LeftSidebar: React.FC<LeftSidebarProps> = ({
   projects,
-  archivedTasksVersion: _archivedTasksVersion,
+  archivedTasksVersion,
   selectedProject,
   onSelectProject,
   onGoHome,
@@ -167,6 +466,9 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   // Track projects that should be force-expanded (e.g. when first task is created)
   const [forceOpenIds, setForceOpenIds] = useState<Set<string>>(new Set());
   const prevTaskCountsRef = useRef<Map<string, number>>(new Map());
+
+  // Per-project archive section visibility
+  const [showArchivedMap, setShowArchivedMap] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const prev = prevTaskCountsRef.current;
@@ -313,156 +615,33 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   itemClassName="relative group cursor-pointer rounded-md list-none min-w-0"
                   getKey={(p) => (p as Project).id}
                 >
-                  {(project) => {
-                    const typedProject = project as Project;
-                    const isProjectActive = selectedProject?.id === typedProject.id && !activeTask;
-                    const projectIsRemote = isRemoteProject(typedProject);
-                    return (
-                      <SidebarMenuItem>
-                        <Collapsible
-                          defaultOpen
-                          open={forceOpenIds.has(typedProject.id) ? true : undefined}
-                          onOpenChange={() => {
-                            if (forceOpenIds.has(typedProject.id)) {
-                              setForceOpenIds((s) => {
-                                const next = new Set(s);
-                                next.delete(typedProject.id);
-                                return next;
-                              });
-                            }
-                          }}
-                          className="group/collapsible"
-                        >
-                          <div
-                            className={`group/project relative flex w-full min-w-0 items-center gap-1.5 rounded-md py-1.5 pl-1 pr-1 text-sm font-medium hover:bg-accent ${
-                              isProjectActive ? 'bg-black/[0.06] dark:bg-white/[0.08]' : ''
-                            }`}
-                            title={projectIsRemote ? 'Remote Project' : undefined}
-                          >
-                            <CollapsibleTrigger asChild>
-                              <button
-                                type="button"
-                                className="flex-shrink-0 rounded p-0.5 outline-none hover:bg-black/5 focus-visible:outline-none dark:hover:bg-white/5"
-                                onClick={(e) => e.stopPropagation()}
-                                aria-label={`Toggle tasks for ${typedProject.name}`}
-                              >
-                                <FolderOpen className="hidden h-4 w-4 text-foreground/60 group-data-[state=open]/collapsible:block" />
-                                <FolderClosed className="block h-4 w-4 text-foreground/60 group-data-[state=open]/collapsible:hidden" />
-                              </button>
-                            </CollapsibleTrigger>
-                            <motion.button
-                              type="button"
-                              className="min-w-0 flex-1 cursor-default truncate bg-transparent text-left text-foreground/60 outline-none focus-visible:outline-none"
-                              whileTap={{ scale: 0.97 }}
-                              transition={{ duration: 0.1, ease: 'easeInOut' }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleNavigationWithCloseSettings(() =>
-                                  onSelectProject(typedProject)
-                                );
-                              }}
-                            >
-                              {typedProject.name}
-                            </motion.button>
-                            {projectIsRemote && <RemoteIndicator project={typedProject} />}
-                            <div className="flex min-w-7 flex-shrink-0 items-center justify-end">
-                              {onCreateTaskForProject && (
-                                <TooltipProvider delayDuration={300}>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <button
-                                        type="button"
-                                        className="flex-shrink-0 rounded p-0.5 text-muted-foreground outline-none hover:bg-black/5 focus-visible:outline-none dark:hover:bg-white/5"
-                                        aria-label={`New Task for ${typedProject.name}`}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleNavigationWithCloseSettings(() => {
-                                            if (
-                                              onSelectProject &&
-                                              selectedProject?.id !== typedProject.id
-                                            ) {
-                                              onSelectProject(typedProject);
-                                            } else if (!selectedProject) {
-                                              onSelectProject?.(typedProject);
-                                            }
-                                            onCreateTaskForProject(typedProject);
-                                          });
-                                        }}
-                                      >
-                                        <Plus className="h-4 w-4" />
-                                      </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="right" sideOffset={4}>
-                                      New Task
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                            </div>
-                          </div>
-
-                          <CollapsibleContent asChild>
-                            <div className="mt-1 min-w-0">
-                              <div className="flex min-w-0 flex-col gap-1">
-                                {typedProject.tasks
-                                  ?.slice()
-                                  .sort((a, b) => {
-                                    const aPinned = pinnedTaskIds?.has(a.id) ? 1 : 0;
-                                    const bPinned = pinnedTaskIds?.has(b.id) ? 1 : 0;
-                                    return bPinned - aPinned;
-                                  })
-                                  .map((task) => {
-                                    const isActive = activeTask?.id === task.id;
-                                    return (
-                                      <motion.div
-                                        key={task.id}
-                                        whileTap={{ scale: 0.97 }}
-                                        transition={{ duration: 0.1, ease: 'easeInOut' }}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleNavigationWithCloseSettings(() => {
-                                            if (
-                                              onSelectProject &&
-                                              selectedProject?.id !== typedProject.id
-                                            ) {
-                                              onSelectProject(typedProject);
-                                            }
-                                            onSelectTask && onSelectTask(task);
-                                          });
-                                        }}
-                                        className={`group/task min-w-0 rounded-md py-1.5 pl-1 pr-2 hover:bg-accent ${
-                                          isActive ? 'bg-black/[0.06] dark:bg-white/[0.08]' : ''
-                                        }`}
-                                        title={task.name}
-                                      >
-                                        <TaskItem
-                                          task={task}
-                                          showDelete={false}
-                                          showDirectBadge={false}
-                                          isPinned={pinnedTaskIds?.has(task.id)}
-                                          onPin={onPinTask ? () => onPinTask(task) : undefined}
-                                          onRename={
-                                            onRenameTask && !task.metadata?.multiAgent?.enabled
-                                              ? (newName) =>
-                                                  onRenameTask(typedProject, task, newName)
-                                              : undefined
-                                          }
-                                          onArchive={
-                                            onArchiveTask
-                                              ? () => onArchiveTask(typedProject, task)
-                                              : undefined
-                                          }
-                                        />
-                                      </motion.div>
-                                    );
-                                  })}
-                              </div>
-                            </div>
-                          </CollapsibleContent>
-                        </Collapsible>
-                      </SidebarMenuItem>
-                    );
-                  }}
+                  {(project) => (
+                    <ProjectRow
+                      project={project as Project}
+                      isProjectActive={selectedProject?.id === (project as Project).id && !activeTask}
+                      activeTask={activeTask}
+                      selectedProject={selectedProject}
+                      forceOpenIds={forceOpenIds}
+                      setForceOpenIds={setForceOpenIds}
+                      pinnedTaskIds={pinnedTaskIds}
+                      onPinTask={onPinTask}
+                      onSelectProject={onSelectProject}
+                      onSelectTask={onSelectTask}
+                      onCreateTaskForProject={onCreateTaskForProject}
+                      onRenameTask={onRenameTask}
+                      onArchiveTask={onArchiveTask}
+                      onRestoreTask={_onRestoreTask}
+                      handleNavigationWithCloseSettings={handleNavigationWithCloseSettings}
+                      showArchived={showArchivedMap[(project as Project).id] ?? false}
+                      archivedTasksVersion={archivedTasksVersion}
+                      onToggleArchived={() =>
+                        setShowArchivedMap((prev) => ({
+                          ...prev,
+                          [(project as Project).id]: !prev[(project as Project).id],
+                        }))
+                      }
+                    />
+                  )}
                 </ReorderList>
               </SidebarMenu>
             </SidebarGroupContent>

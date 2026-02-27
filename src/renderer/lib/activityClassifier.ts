@@ -1,4 +1,4 @@
-export type ActivitySignal = 'busy' | 'idle' | 'neutral';
+export type ActivitySignal = 'busy' | 'idle' | 'neutral' | 'awaiting_input';
 
 function stripAnsi(s: string): string {
   // Remove ANSI escape codes and carriage returns
@@ -51,6 +51,10 @@ export function classifyActivity(
       )
     )
       return 'busy';
+    // Awaiting input cues — permission prompts, approval requests
+    if (/Do you want to/i.test(text)) return 'awaiting_input';
+    if (/Allow|Deny|approve/i.test(text)) return 'awaiting_input';
+    if (/\[y\/n\]|\[Y\/N\]/i.test(text)) return 'awaiting_input';
     // Idle cues
     if (/Ready|Awaiting|Next command|Use \/login/i.test(text)) return 'idle';
   }
@@ -67,22 +71,23 @@ export function classifyActivity(
       )
     )
       return 'busy';
+    // Awaiting input — approval prompts
+    if (/\b\/(status|approvals|model)\b/i.test(text)) return 'awaiting_input';
     // Idle footers/prompts
     if (/Ready|Awaiting input|Press Enter/i.test(text)) return 'idle';
-    if (/\b\/(status|approvals|model)\b/i.test(text)) return 'idle';
     if (/send\s+\S*\s*newline|transcript|quit/i.test(text)) return 'idle';
   }
 
   if (p === 'copilot') {
     if (/Thinking|Working|Generating/i.test(text)) return 'busy';
     if (
-      /Ready|Press Enter|Next step/i.test(text) ||
       /Do you want to/i.test(text) ||
       /Confirm with number keys/i.test(text) ||
       /approve all file operations/i.test(text) ||
       /Yes, and approve/i.test(text)
     )
-      return 'idle';
+      return 'awaiting_input';
+    if (/Ready|Press Enter|Next step/i.test(text)) return 'idle';
   }
 
   if (p === 'gemini' || p === 'droid') {
@@ -167,9 +172,9 @@ export function classifyActivity(
     if (/\bvibe\s*>/i.test(text)) return 'idle'; // Vibe prompt
     if (/›|»|>/i.test(text) && text.length < 10) return 'idle'; // Short prompt indicators
 
-    // Confirmation prompts
-    if (/\[y\/n\]|\[Y\/N\]|Continue\?/i.test(text)) return 'idle';
-    if (/Approve|Reject|Cancel/i.test(text)) return 'idle';
+    // Confirmation/approval prompts
+    if (/\[y\/n\]|\[Y\/N\]|Continue\?/i.test(text)) return 'awaiting_input';
+    if (/Approve|Reject|Cancel/i.test(text)) return 'awaiting_input';
   }
 
   if (p === 'kilocode') {
@@ -206,7 +211,7 @@ export function classifyActivity(
     // Standard prompts
     if (/Ready|Awaiting|Press Enter|Next command/i.test(text)) return 'idle';
     if (/kilocode\s*>/i.test(text)) return 'idle'; // Kilocode prompt
-    if (/\[y\/n\]|\[Y\/N\]/i.test(text)) return 'idle'; // Confirmation prompts
+    if (/\[y\/n\]|\[Y\/N\]/i.test(text)) return 'awaiting_input'; // Confirmation prompts
 
     // UI status bar patterns (workspace info at bottom)
     if (/\(git.*worktree\)/i.test(text)) return 'idle';
@@ -284,6 +289,9 @@ export function classifyActivity(
   if (/esc\s*to\s*(cancel|interrupt)/i.test(text)) return 'busy';
   if (/(^|\b)(Generating|Working|Executing|Running|Applying|Thinking)(\b|\.)/i.test(text))
     return 'busy';
+  // Generic awaiting input — approval/confirmation prompts
+  if (/Do you want to|Confirm|approve/i.test(text)) return 'awaiting_input';
+  if (/\[y\/n\]|\[Y\/N\]/i.test(text)) return 'awaiting_input';
   if (/Add a follow-up|Ready|Awaiting|Press Enter|Next command/i.test(text)) return 'idle';
   return 'neutral';
 }

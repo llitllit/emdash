@@ -90,3 +90,41 @@ export function useTaskBusy(taskId: string) {
 
   return mainBusy || chatBusy;
 }
+
+export type ProjectStatus = 'running' | 'awaiting_input' | 'idle';
+
+/**
+ * Aggregates task activity status across all tasks in a project.
+ * Piggybacks on the existing boolean subscribe() path (same as the spinner)
+ * and reads the last classified signal to distinguish running vs awaiting_input.
+ */
+export function useProjectStatus(taskIds: string[]): ProjectStatus {
+  const [status, setStatus] = useState<ProjectStatus>('idle');
+
+  useEffect(() => {
+    if (taskIds.length === 0) { setStatus('idle'); return; }
+    const busyMap = new Map<string, boolean>();
+
+    const recompute = () => {
+      let hasAwaiting = false;
+      let hasBusy = false;
+      for (const id of taskIds) {
+        if (busyMap.get(id)) hasBusy = true;
+        const sig = activityStore.getLastSignal(id);
+        if (sig === 'awaiting_input') hasAwaiting = true;
+      }
+      const next: ProjectStatus = hasAwaiting ? 'awaiting_input' : hasBusy ? 'running' : 'idle';
+      setStatus(prev => prev === next ? prev : next);
+    };
+
+    const unsubs = taskIds.map(id =>
+      activityStore.subscribe(id, (busy) => {
+        busyMap.set(id, busy);
+        recompute();
+      }, { kinds: ['main'] })
+    );
+    return () => unsubs.forEach(off => { try { off(); } catch {} });
+  }, [taskIds.join(',')]);
+
+  return status;
+}
