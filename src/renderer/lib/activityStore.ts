@@ -2,6 +2,7 @@ import { classifyActivity, type ActivitySignal } from './activityClassifier';
 import { CLEAR_BUSY_MS, BUSY_HOLD_MS } from './activityConstants';
 import { type PtyIdKind, parsePtyId, makePtyId } from '@shared/ptyId';
 import { PROVIDER_IDS } from '@shared/providers/registry';
+import { taskAttentionStore } from './taskAttentionStore';
 
 type Listener = (busy: boolean) => void;
 
@@ -28,8 +29,10 @@ class ActivityStore {
           const signal = classifyActivity(prov, info?.chunk || '');
           if (signal !== 'neutral') this.lastSignals.set(wsId, signal);
           if (signal === 'busy') {
+            taskAttentionStore.markActive(wsId);
             this.setBusy(wsId, true, true);
           } else if (signal === 'awaiting_input') {
+            taskAttentionStore.markActive(wsId);
             this.setBusy(wsId, false, true);
           } else if (signal === 'idle') {
             this.setBusy(wsId, false, true);
@@ -144,8 +147,10 @@ class ActivityStore {
               const signal = classifyActivity(prov, chunk || '');
               if (signal !== 'neutral') this.lastSignals.set(wsId, signal);
               if (signal === 'busy') {
+                taskAttentionStore.markActive(wsId);
                 this.setBusy(wsId, true, true);
               } else if (signal === 'awaiting_input') {
+                taskAttentionStore.markActive(wsId);
                 this.setBusy(wsId, false, true);
               } else if (signal === 'idle') {
                 this.setBusy(wsId, false, true);

@@ -16,6 +16,9 @@ export interface AppKeyboardShortcutsProps {
   handleToggleEditor: () => void;
   handleNextTask: () => void;
   handlePrevTask: () => void;
+  handleNextActiveTask: () => void;
+  handlePrevActiveTask: () => void;
+  handleNextNeedsInput: () => void;
   handleNewTask: () => void;
   handleOpenInEditor: () => void;
 }
@@ -31,6 +34,9 @@ const AppKeyboardShortcuts: React.FC<AppKeyboardShortcutsProps> = ({
   handleToggleEditor,
   handleNextTask,
   handlePrevTask,
+  handleNextActiveTask,
+  handlePrevActiveTask,
+  handleNextNeedsInput,
   handleNewTask,
   handleOpenInEditor,
 }) => {
@@ -59,6 +65,9 @@ const AppKeyboardShortcuts: React.FC<AppKeyboardShortcutsProps> = ({
         new CustomEvent('emdash:switch-agent', { detail: { direction: 'prev' } })
       ),
     onOpenInEditor: handleOpenInEditor,
+    onNextActiveTask: handleNextActiveTask,
+    onPrevActiveTask: handlePrevActiveTask,
+    onNextNeedsInput: handleNextNeedsInput,
     onCloseModal: showCommandPalette
       ? handleCloseCommandPalette
       : showSettings

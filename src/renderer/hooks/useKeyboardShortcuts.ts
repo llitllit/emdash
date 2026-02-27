@@ -22,7 +22,10 @@ export type ShortcutSettingsKey =
   | 'newTask'
   | 'nextAgent'
   | 'prevAgent'
-  | 'openInEditor';
+  | 'openInEditor'
+  | 'nextActiveTask'
+  | 'prevActiveTask'
+  | 'nextNeedsInput';
 
 export interface AppShortcut {
   key: string;
@@ -208,6 +211,33 @@ export const APP_SHORTCUTS: Record<string, AppShortcut> = {
     category: 'Navigation',
     settingsKey: 'openInEditor',
   },
+
+  NEXT_ACTIVE_TASK: {
+    key: ']',
+    modifier: 'cmd+shift',
+    label: 'Next Active Task',
+    description: 'Jump to next task with unseen activity',
+    category: 'Navigation',
+    settingsKey: 'nextActiveTask',
+  },
+
+  PREV_ACTIVE_TASK: {
+    key: '[',
+    modifier: 'cmd+shift',
+    label: 'Prev Active Task',
+    description: 'Jump to previous task with unseen activity',
+    category: 'Navigation',
+    settingsKey: 'prevActiveTask',
+  },
+
+  NEXT_NEEDS_INPUT: {
+    key: '/',
+    modifier: 'cmd+shift',
+    label: 'Next Needs Input',
+    description: 'Jump to next task awaiting your input',
+    category: 'Navigation',
+    settingsKey: 'nextNeedsInput',
+  },
 };
 
 /**
@@ -367,6 +397,9 @@ export function useKeyboardShortcuts(handlers: GlobalShortcutHandlers) {
       nextAgent: getEffectiveConfig(APP_SHORTCUTS.NEXT_AGENT, custom),
       prevAgent: getEffectiveConfig(APP_SHORTCUTS.PREV_AGENT, custom),
       openInEditor: getEffectiveConfig(APP_SHORTCUTS.OPEN_IN_EDITOR, custom),
+      nextActiveTask: getEffectiveConfig(APP_SHORTCUTS.NEXT_ACTIVE_TASK, custom),
+      prevActiveTask: getEffectiveConfig(APP_SHORTCUTS.PREV_ACTIVE_TASK, custom),
+      nextNeedsInput: getEffectiveConfig(APP_SHORTCUTS.NEXT_NEEDS_INPUT, custom),
     };
   }, [handlers.customKeyboardSettings]);
 
@@ -453,6 +486,24 @@ export function useKeyboardShortcuts(handlers: GlobalShortcutHandlers) {
       {
         config: effectiveShortcuts.openInEditor,
         handler: () => handlers.onOpenInEditor?.(),
+        priority: 'global',
+        requiresClosed: true,
+      },
+      {
+        config: effectiveShortcuts.nextActiveTask,
+        handler: () => handlers.onNextActiveTask?.(),
+        priority: 'global',
+        requiresClosed: true,
+      },
+      {
+        config: effectiveShortcuts.prevActiveTask,
+        handler: () => handlers.onPrevActiveTask?.(),
+        priority: 'global',
+        requiresClosed: true,
+      },
+      {
+        config: effectiveShortcuts.nextNeedsInput,
+        handler: () => handlers.onNextNeedsInput?.(),
         priority: 'global',
         requiresClosed: true,
       },

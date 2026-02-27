@@ -5,6 +5,7 @@ import type { ProviderId } from '@shared/providers/registry';
 import { saveActiveIds, getStoredActiveIds } from '../constants/layout';
 import { getAgentForTask } from '../lib/getAgentForTask';
 import { disposeTaskTerminals } from '../lib/taskTerminalsStore';
+import { taskAttentionStore } from '../lib/taskAttentionStore';
 import { terminalSessionRegistry } from '../terminal/SessionRegistry';
 import type { Agent } from '../types';
 import type { Project, Task } from '../types/app';
@@ -125,6 +126,7 @@ export function useTaskManagement(options: UseTaskManagementOptions) {
     setActiveTask(task);
     setActiveTaskAgent(getAgentForTask(task));
     saveActiveIds(task.projectId, task.id);
+    taskAttentionStore.markViewed(task.id);
   };
 
   const handleNextTask = useCallback(() => {
@@ -164,6 +166,46 @@ export function useTaskManagement(options: UseTaskManagementOptions) {
     setActiveTaskAgent(getAgentForTask(task));
     saveActiveIds(project.id, task.id);
   }, [allTasks, activeTask, selectedProject]);
+
+  const cycleFiltered = useCallback(
+    (filterFn: (taskId: string) => boolean, direction: 1 | -1) => {
+      const filtered = allTasks.filter(({ task }) => filterFn(task.id));
+      if (filtered.length === 0) return;
+      const currentIndex = activeTask
+        ? filtered.findIndex(({ task }) => task.id === activeTask.id)
+        : -1;
+      let nextIndex: number;
+      if (direction === 1) {
+        nextIndex = (currentIndex + 1) % filtered.length;
+      } else {
+        nextIndex = currentIndex <= 0 ? filtered.length - 1 : currentIndex - 1;
+      }
+      const { task, project } = filtered[nextIndex];
+      if (!selectedProject || selectedProject.id !== project.id) {
+        setShowEditorMode(false);
+        setShowKanban(false);
+      }
+      setSelectedProject(project);
+      setShowHomeView(false);
+      setActiveTask(task);
+      setActiveTaskAgent(getAgentForTask(task));
+      saveActiveIds(project.id, task.id);
+      taskAttentionStore.markViewed(task.id);
+    },
+    [allTasks, activeTask, selectedProject]
+  );
+
+  const handleNextActiveTask = useCallback(() => {
+    cycleFiltered((id) => taskAttentionStore.hasUnseenActivity(id), 1);
+  }, [cycleFiltered]);
+
+  const handlePrevActiveTask = useCallback(() => {
+    cycleFiltered((id) => taskAttentionStore.hasUnseenActivity(id), -1);
+  }, [cycleFiltered]);
+
+  const handleNextNeedsInput = useCallback(() => {
+    cycleFiltered((id) => taskAttentionStore.needsInput(id), 1);
+  }, [cycleFiltered]);
 
   const handleNewTask = useCallback(() => {
     // Only open modal if a project is selected
@@ -855,6 +897,9 @@ export function useTaskManagement(options: UseTaskManagementOptions) {
     handleSelectTask,
     handleNextTask,
     handlePrevTask,
+    handleNextActiveTask,
+    handlePrevActiveTask,
+    handleNextNeedsInput,
     handleNewTask,
     handleStartCreateTaskFromSidebar,
     removeTaskFromState,

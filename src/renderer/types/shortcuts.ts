@@ -27,6 +27,9 @@ export interface KeyboardSettings {
   nextAgent?: ShortcutBinding;
   prevAgent?: ShortcutBinding;
   openInEditor?: ShortcutBinding;
+  nextActiveTask?: ShortcutBinding;
+  prevActiveTask?: ShortcutBinding;
+  nextNeedsInput?: ShortcutBinding;
 }
 
 export interface ShortcutConfig {
@@ -92,6 +95,11 @@ export interface GlobalShortcutHandlers {
 
   // Open in editor
   onOpenInEditor?: () => void;
+
+  // Filtered task cycling
+  onNextActiveTask?: () => void;
+  onPrevActiveTask?: () => void;
+  onNextNeedsInput?: () => void;
 
   // State checks
   isCommandPaletteOpen?: boolean;

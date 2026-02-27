@@ -544,6 +544,9 @@ const AppContent: React.FC = () => {
                 handleToggleEditor={handleToggleEditor}
                 handleNextTask={taskMgmt.handleNextTask}
                 handlePrevTask={taskMgmt.handlePrevTask}
+                handleNextActiveTask={taskMgmt.handleNextActiveTask}
+                handlePrevActiveTask={taskMgmt.handlePrevActiveTask}
+                handleNextNeedsInput={taskMgmt.handleNextNeedsInput}
                 handleNewTask={taskMgmt.handleNewTask}
                 handleOpenInEditor={handleOpenInEditor}
               />
