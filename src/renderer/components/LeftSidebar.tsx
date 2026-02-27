@@ -214,9 +214,9 @@ const ProjectRow: React.FC<ProjectRowProps> = ({
 
   const statusGradient =
     projectStatus === 'awaiting_input'
-      ? 'bg-gradient-to-r from-orange-500/[0.08] to-transparent'
+      ? 'bg-orange-500/[0.08]'
       : projectStatus === 'running'
-        ? 'bg-gradient-to-r from-sky-400/[0.10] to-transparent'
+        ? 'bg-sky-400/[0.10]'
         : '';
 
   return (
@@ -441,9 +441,9 @@ const TaskRow: React.FC<{
   const taskStatus = useTaskStatus(task.id);
   const taskGradient =
     taskStatus === 'awaiting_input'
-      ? 'bg-gradient-to-r from-orange-500/[0.08] to-transparent'
+      ? 'bg-orange-500/[0.08]'
       : taskStatus === 'running'
-        ? 'bg-gradient-to-r from-sky-400/[0.10] to-transparent'
+        ? 'bg-sky-400/[0.10]'
         : '';
 
   return (
