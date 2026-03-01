@@ -82,7 +82,6 @@ const MissionControlStatusBar: React.FC<MissionControlStatusBarProps> = ({
             );
           })}
         </div>
-
       </div>
     </div>
   );

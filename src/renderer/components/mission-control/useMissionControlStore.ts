@@ -99,7 +99,7 @@ export function useMissionControlStore(options: UseMissionControlStoreOptions) {
     return allTaskEntries
       .map(({ task, project }) => {
         const status = statusMap.get(task.id) || 'idle';
-        return { task, project, status, tailLines: [], awaitingInputIndex: null as number | null };
+        return { task, project, status, awaitingInputIndex: null as number | null };
       })
       .filter((t) => filter === 'all' || t.status === filter)
       .sort((a, b) => tierOrder(a.status) - tierOrder(b.status))

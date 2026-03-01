@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { AnimatePresence, LayoutGroup } from 'motion/react';
 import { LayoutGrid } from 'lucide-react';
 import type { Project } from '../../types/app';
@@ -7,7 +7,7 @@ import { useMissionControlStore } from './useMissionControlStore';
 import MissionControlStatusBar from './MissionControlStatusBar';
 import MissionControlPane from './MissionControlPane';
 import MissionControlFocusedPane from './MissionControlFocusedPane';
-import { useMissionControlKeys } from './useMissionControlKeys';
+import { useMissionControlKeys, getNextAwaitingTask } from './useMissionControlKeys';
 
 interface MissionControlViewProps {
   projects: Project[];
@@ -37,6 +37,20 @@ const MissionControlView: React.FC<MissionControlViewProps> = ({
   const awaitingTasks = tasks.filter((t) => t.status === 'awaiting_input');
   const runningTasks = tasks.filter((t) => t.status === 'running');
   const idleTasks = tasks.filter((t) => t.status === 'idle');
+
+  // Auto-advance after approve/deny button clicks (same logic as keyboard Enter/N)
+  const handleAfterAction = useCallback(() => {
+    if (!focusedPane) {
+      unfocus();
+      return;
+    }
+    const next = getNextAwaitingTask(awaitingTasks, focusedPane.taskId);
+    if (next) {
+      focusTask(next.task.id);
+    } else {
+      unfocus();
+    }
+  }, [focusedPane, awaitingTasks, focusTask, unfocus]);
 
   // Empty state
   if (counts.total === 0) {
@@ -74,7 +88,7 @@ const MissionControlView: React.FC<MissionControlViewProps> = ({
               <MissionControlFocusedPane
                 key="focused"
                 mcTask={focusedMcTask}
-                onDismiss={unfocus}
+                onDismiss={handleAfterAction}
                 onSelectTask={onSelectTask}
               />
             ) : (

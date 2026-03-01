@@ -6,7 +6,6 @@ export interface MissionControlTask {
   task: Task;
   project: Project;
   status: TaskStatus;
-  tailLines: string[];
   /** 1-based badge number for awaiting_input tasks, null otherwise */
   awaitingInputIndex: number | null;
 }

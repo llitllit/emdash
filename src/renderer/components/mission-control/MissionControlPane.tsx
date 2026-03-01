@@ -53,7 +53,7 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
 
         {/* Initial prompt */}
         {initialPrompt && (
-          <div className="mt-1 flex-shrink-0 truncate text-xs text-muted-foreground/60">
+          <div className="mt-1 flex-shrink-0 truncate text-xs italic text-muted-foreground/60">
             "{initialPrompt}"
           </div>
         )}
@@ -85,7 +85,7 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
           </span>
         </div>
         {initialPrompt && (
-          <div className="mt-1 flex-shrink-0 truncate text-xs text-muted-foreground/60">
+          <div className="mt-1 flex-shrink-0 truncate text-xs italic text-muted-foreground/60">
             "{initialPrompt}"
           </div>
         )}
@@ -130,7 +130,7 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
 
       {/* Initial prompt */}
       {initialPrompt && (
-        <div className="mt-1 flex-shrink-0 truncate text-xs text-muted-foreground/60">
+        <div className="mt-1 flex-shrink-0 truncate text-xs italic text-muted-foreground/60">
           "{initialPrompt}"
         </div>
       )}

@@ -32,6 +32,24 @@ function sendPtyInput(taskId: string, data: string) {
   }
 }
 
+/**
+ * Find the next awaiting task by badge number (forward-only).
+ * Prevents cycling back to already-visited tasks when status updates lag.
+ */
+export function getNextAwaitingTask(
+  awaitingTasks: MissionControlTask[],
+  currentTaskId: string
+): MissionControlTask | undefined {
+  const currentBadge =
+    awaitingTasks.find((t) => t.task.id === currentTaskId)
+      ?.awaitingInputIndex ?? 0;
+  return awaitingTasks.find(
+    (t) =>
+      t.task.id !== currentTaskId &&
+      (t.awaitingInputIndex ?? 0) > currentBadge
+  );
+}
+
 export function useMissionControlKeys(options: UseMissionControlKeysOptions) {
   const { tasks, focusedPane, focusTask, unfocus } = options;
 
@@ -85,6 +103,15 @@ export function useMissionControlKeys(options: UseMissionControlKeysOptions) {
 
       if (focusedPane) {
         // --- Focused mode ---
+        const advanceToNext = () => {
+          const next = getNextAwaitingTask(awaitingTasks, focusedPane.taskId);
+          if (next) {
+            focusTask(next.task.id);
+          } else {
+            unfocus();
+          }
+        };
+
         if (e.key === 'Escape') {
           e.preventDefault();
           unfocus();
@@ -93,29 +120,13 @@ export function useMissionControlKeys(options: UseMissionControlKeysOptions) {
         if (e.key === 'Enter') {
           e.preventDefault();
           sendPtyInput(focusedPane.taskId, 'y\n');
-          // Auto-advance to next awaiting task
-          const remaining = awaitingTasks.filter(
-            (t) => t.task.id !== focusedPane.taskId
-          );
-          if (remaining.length > 0) {
-            focusTask(remaining[0].task.id);
-          } else {
-            unfocus();
-          }
+          advanceToNext();
           return;
         }
         if (e.key === 'n' || e.key === 'N') {
           e.preventDefault();
           sendPtyInput(focusedPane.taskId, 'n\n');
-          // Auto-advance to next awaiting task
-          const remaining = awaitingTasks.filter(
-            (t) => t.task.id !== focusedPane.taskId
-          );
-          if (remaining.length > 0) {
-            focusTask(remaining[0].task.id);
-          } else {
-            unfocus();
-          }
+          advanceToNext();
           return;
         }
       } else {
