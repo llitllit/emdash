@@ -28,7 +28,6 @@ export function useMissionControlStore(options: UseMissionControlStoreOptions) {
   // --- Core state ---
   const [filter, setFilter] = useState<MissionControlFilter>('all');
   const [focusedPane, setFocusedPane] = useState<FocusedPaneState>(null);
-  const [groupByProject, setGroupByProject] = useState(false);
 
   // --- Derived: all non-archived tasks across all projects ---
   const allTaskEntries = useMemo(() => {
@@ -162,8 +161,6 @@ export function useMissionControlStore(options: UseMissionControlStoreOptions) {
     focusedPane,
     focusTask,
     unfocus,
-    groupByProject,
-    setGroupByProject,
     tasks: stableTasks,
     counts,
     allTaskEntries,

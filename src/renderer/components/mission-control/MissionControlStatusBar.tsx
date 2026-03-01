@@ -1,5 +1,4 @@
 import React from 'react';
-import { Button } from '../ui/button';
 import { LayoutGrid } from 'lucide-react';
 import type { MissionControlFilter, MissionControlStatusCounts } from './types';
 
@@ -7,8 +6,6 @@ interface MissionControlStatusBarProps {
   counts: MissionControlStatusCounts;
   filter: MissionControlFilter;
   onFilterChange: (filter: MissionControlFilter) => void;
-  groupByProject: boolean;
-  onGroupByProjectChange: (value: boolean) => void;
 }
 
 const FILTERS: { key: MissionControlFilter; label: string }[] = [
@@ -22,8 +19,6 @@ const MissionControlStatusBar: React.FC<MissionControlStatusBarProps> = ({
   counts,
   filter,
   onFilterChange,
-  groupByProject,
-  onGroupByProjectChange,
 }) => {
   return (
     <div className="flex items-center justify-between border-b border-border px-4 py-2">
@@ -88,15 +83,6 @@ const MissionControlStatusBar: React.FC<MissionControlStatusBarProps> = ({
           })}
         </div>
 
-        {/* Group by project toggle */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onGroupByProjectChange(!groupByProject)}
-          className={`ml-2 text-xs ${groupByProject ? 'bg-black/[0.06] dark:bg-white/[0.08]' : ''}`}
-        >
-          Group
-        </Button>
       </div>
     </div>
   );

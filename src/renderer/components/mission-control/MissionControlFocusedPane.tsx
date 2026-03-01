@@ -4,7 +4,7 @@ import { PROVIDER_IDS } from '@shared/providers/registry';
 import { makePtyId } from '@shared/ptyId';
 import type { MissionControlTask } from './types';
 import type { Task } from '../../types/chat';
-import { usePtyTailBuffer } from './usePtyTailBuffer';
+import TileTerminal from './TileTerminal';
 import { Button } from '../ui/button';
 
 interface MissionControlFocusedPaneProps {
@@ -19,7 +19,6 @@ const MissionControlFocusedPane: React.FC<MissionControlFocusedPaneProps> = ({
   onSelectTask,
 }) => {
   const { task, project } = mcTask;
-  const tailLines = usePtyTailBuffer(task.id);
   const initialPrompt = (task.metadata as any)?.initialPrompt as string | null;
 
   const handleApprove = () => {
@@ -57,19 +56,10 @@ const MissionControlFocusedPane: React.FC<MissionControlFocusedPaneProps> = ({
         </div>
       )}
 
-      {/* Terminal tail */}
-      {tailLines.length > 0 && (
-        <div className="mt-3 max-h-48 overflow-y-auto rounded-md bg-black/[0.05] p-3 dark:bg-white/[0.05]">
-          {tailLines.slice(-8).map((line, i) => (
-            <div
-              key={i}
-              className="truncate font-mono text-xs leading-relaxed text-muted-foreground"
-            >
-              {line}
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Terminal */}
+      <div className="mt-3 h-48 overflow-hidden rounded-md">
+        <TileTerminal taskId={task.id} agentId={task.agentId} />
+      </div>
 
       {/* Action buttons */}
       <div className="mt-4 flex items-center gap-3">

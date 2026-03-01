@@ -27,8 +27,6 @@ const MissionControlView: React.FC<MissionControlViewProps> = ({
     focusedPane,
     focusTask,
     unfocus,
-    groupByProject,
-    setGroupByProject,
   } = store;
 
   useMissionControlKeys({ tasks, focusedPane, focusTask, unfocus });
@@ -48,8 +46,6 @@ const MissionControlView: React.FC<MissionControlViewProps> = ({
           counts={counts}
           filter={filter}
           onFilterChange={setFilter}
-          groupByProject={groupByProject}
-          onGroupByProjectChange={setGroupByProject}
         />
         <div className="flex flex-1 flex-col items-center justify-center text-foreground">
           <LayoutGrid className="mb-3 h-10 w-10 text-muted-foreground/40" />
@@ -69,8 +65,6 @@ const MissionControlView: React.FC<MissionControlViewProps> = ({
         counts={counts}
         filter={filter}
         onFilterChange={setFilter}
-        groupByProject={groupByProject}
-        onGroupByProjectChange={setGroupByProject}
       />
 
       <div className="flex-1 overflow-y-auto p-4">
@@ -93,7 +87,7 @@ const MissionControlView: React.FC<MissionControlViewProps> = ({
                         Needs Attention
                       </h3>
                     )}
-                    <div className="grid gap-3 grid-cols-1 lg:grid-cols-2" style={{ gridAutoRows: '1fr' }}>
+                    <div className="grid gap-3 grid-cols-1 lg:grid-cols-2" style={{ gridAutoRows: 'minmax(280px, 1fr)' }}>
                       {awaitingTasks.map((mcTask) => (
                         <MissionControlPane
                           key={mcTask.task.id}
@@ -116,7 +110,7 @@ const MissionControlView: React.FC<MissionControlViewProps> = ({
                         Running
                       </h3>
                     )}
-                    <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gridAutoRows: '1fr' }}>
+                    <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gridAutoRows: 'minmax(220px, 1fr)' }}>
                       {runningTasks.map((mcTask) => (
                         <MissionControlPane
                           key={mcTask.task.id}
@@ -139,7 +133,7 @@ const MissionControlView: React.FC<MissionControlViewProps> = ({
                     )}
                     <div
                       className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2"
-                      style={{ gridAutoRows: '1fr' }}
+                      style={{ gridAutoRows: 'minmax(160px, auto)' }}
                     >
                       {idleTasks.map((mcTask) => (
                         <MissionControlPane

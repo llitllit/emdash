@@ -51,6 +51,13 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
           )}
         </div>
 
+        {/* Initial prompt */}
+        {initialPrompt && (
+          <div className="mt-1 flex-shrink-0 truncate text-xs text-muted-foreground/60">
+            "{initialPrompt}"
+          </div>
+        )}
+
         {/* Terminal content */}
         <div className="mt-2 min-h-0 flex-1 overflow-hidden rounded-md">
           <TileTerminal taskId={task.id} agentId={task.agentId} />
@@ -77,6 +84,11 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
             {project.name}
           </span>
         </div>
+        {initialPrompt && (
+          <div className="mt-1 flex-shrink-0 truncate text-xs text-muted-foreground/60">
+            "{initialPrompt}"
+          </div>
+        )}
         {actionText && (
           <div className="mt-1.5 flex-shrink-0 truncate text-xs text-sky-300/80">
             {actionText}
@@ -115,6 +127,13 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
           {project.name}
         </span>
       </div>
+
+      {/* Initial prompt */}
+      {initialPrompt && (
+        <div className="mt-1 flex-shrink-0 truncate text-xs text-muted-foreground/60">
+          "{initialPrompt}"
+        </div>
+      )}
 
       {/* Action text */}
       {actionText && (

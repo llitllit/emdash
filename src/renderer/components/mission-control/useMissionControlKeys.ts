@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import type { MissionControlTask, FocusedPaneState } from './types';
 import { PROVIDER_IDS } from '@shared/providers/registry';
 import { makePtyId } from '@shared/ptyId';
@@ -9,6 +9,8 @@ interface UseMissionControlKeysOptions {
   focusTask: (taskId: string) => void;
   unfocus: () => void;
 }
+
+const IDLE_THRESHOLD_MS = 15_000;
 
 function isEditableTarget(el: EventTarget | null): boolean {
   if (!el || !(el instanceof HTMLElement)) return false;
@@ -35,11 +37,50 @@ export function useMissionControlKeys(options: UseMissionControlKeysOptions) {
 
   const awaitingTasks = tasks.filter((t) => t.status === 'awaiting_input');
 
+  // --- Smart auto-focus: track user interaction ---
+  const lastInteractionRef = useRef(Date.now());
+
+  useEffect(() => {
+    const markActive = () => {
+      lastInteractionRef.current = Date.now();
+    };
+    window.addEventListener('keydown', markActive, true);
+    window.addEventListener('mousedown', markActive, true);
+    return () => {
+      window.removeEventListener('keydown', markActive, true);
+      window.removeEventListener('mousedown', markActive, true);
+    };
+  }, []);
+
+  // Auto-focus if exactly 1 awaiting task and user idle for 15s
+  const autoFocusTargetId =
+    !focusedPane && awaitingTasks.length === 1
+      ? awaitingTasks[0].task.id
+      : null;
+
+  useEffect(() => {
+    if (!autoFocusTargetId) return;
+
+    let timerId: ReturnType<typeof setTimeout>;
+
+    const check = () => {
+      const elapsed = Date.now() - lastInteractionRef.current;
+      if (elapsed >= IDLE_THRESHOLD_MS) {
+        focusTask(autoFocusTargetId);
+      } else {
+        timerId = setTimeout(check, IDLE_THRESHOLD_MS - elapsed);
+      }
+    };
+
+    check();
+
+    return () => clearTimeout(timerId);
+  }, [autoFocusTargetId, focusTask]);
+
+  // --- Keyboard handler ---
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      // Skip if user is typing in an input
       if (isEditableTarget(e.target)) return;
-      // Skip if any modifier keys are held (avoid conflicting with global shortcuts)
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
       if (focusedPane) {
@@ -52,18 +93,33 @@ export function useMissionControlKeys(options: UseMissionControlKeysOptions) {
         if (e.key === 'Enter') {
           e.preventDefault();
           sendPtyInput(focusedPane.taskId, 'y\n');
-          unfocus();
+          // Auto-advance to next awaiting task
+          const remaining = awaitingTasks.filter(
+            (t) => t.task.id !== focusedPane.taskId
+          );
+          if (remaining.length > 0) {
+            focusTask(remaining[0].task.id);
+          } else {
+            unfocus();
+          }
           return;
         }
         if (e.key === 'n' || e.key === 'N') {
           e.preventDefault();
           sendPtyInput(focusedPane.taskId, 'n\n');
-          unfocus();
+          // Auto-advance to next awaiting task
+          const remaining = awaitingTasks.filter(
+            (t) => t.task.id !== focusedPane.taskId
+          );
+          if (remaining.length > 0) {
+            focusTask(remaining[0].task.id);
+          } else {
+            unfocus();
+          }
           return;
         }
       } else {
         // --- Grid mode ---
-        // Number keys 1-9 focus the Nth awaiting task
         const num = parseInt(e.key, 10);
         if (num >= 1 && num <= 9) {
           const target = awaitingTasks.find(
@@ -75,7 +131,6 @@ export function useMissionControlKeys(options: UseMissionControlKeysOptions) {
             return;
           }
         }
-        // Enter auto-focuses if exactly 1 awaiting task
         if (e.key === 'Enter' && awaitingTasks.length === 1) {
           e.preventDefault();
           focusTask(awaitingTasks[0].task.id);
