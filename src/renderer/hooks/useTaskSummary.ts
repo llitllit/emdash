@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 
 interface TaskSummary {
+  firstUserMessage: string | null;
   lastAgentMessage: string | null;
   loading: boolean;
 }
 
 export function useTaskSummary(taskId: string, enabled: boolean): TaskSummary {
+  const [firstUserMessage, setFirstUserMessage] = useState<string | null>(null);
   const [lastAgentMessage, setLastAgentMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(enabled);
 
@@ -15,10 +17,15 @@ export function useTaskSummary(taskId: string, enabled: boolean): TaskSummary {
 
     async function load() {
       try {
-        const res = await window.electronAPI.getLastAgentMessage(taskId);
+        const res = await window.electronAPI.getTaskSummaryMessages(taskId);
         if (cancelled) return;
-        if (res?.success && res.message?.content) {
-          setLastAgentMessage(res.message.content);
+        if (res?.success) {
+          if (res.firstUserMessage?.content) {
+            setFirstUserMessage(res.firstUserMessage.content);
+          }
+          if (res.lastAgentMessage?.content) {
+            setLastAgentMessage(res.lastAgentMessage.content);
+          }
         }
       } catch {
         // gracefully ignore
@@ -33,5 +40,5 @@ export function useTaskSummary(taskId: string, enabled: boolean): TaskSummary {
     };
   }, [taskId, enabled]);
 
-  return { lastAgentMessage, loading };
+  return { firstUserMessage, lastAgentMessage, loading };
 }

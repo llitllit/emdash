@@ -103,6 +103,16 @@ export function registerDatabaseIpc() {
     }
   });
 
+  ipcMain.handle('db:getTaskSummaryMessages', async (_, taskId: string) => {
+    try {
+      const result = await databaseService.getTaskSummaryMessages(taskId);
+      return { success: true, ...result };
+    } catch (error) {
+      log.error('Failed to get task summary messages:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   ipcMain.handle('db:getLastAgentMessage', async (_, taskId: string) => {
     try {
       const message = await databaseService.getLastAgentMessage(taskId);

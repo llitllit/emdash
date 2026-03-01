@@ -548,6 +548,60 @@ export class DatabaseService {
     return rows.map((row) => this.mapDrizzleMessageRow(row));
   }
 
+  async getTaskSummaryMessages(
+    taskId: string
+  ): Promise<{ firstUserMessage: Message | null; lastAgentMessage: Message | null }> {
+    if (this.disabled) return { firstUserMessage: null, lastAgentMessage: null };
+    const { db } = await getDrizzleClient();
+
+    const userRows = await db
+      .select({
+        id: messagesTable.id,
+        conversationId: messagesTable.conversationId,
+        content: messagesTable.content,
+        sender: messagesTable.sender,
+        timestamp: messagesTable.timestamp,
+        metadata: messagesTable.metadata,
+      })
+      .from(messagesTable)
+      .innerJoin(conversationsTable, eq(messagesTable.conversationId, conversationsTable.id))
+      .where(
+        and(
+          eq(conversationsTable.taskId, taskId),
+          eq(conversationsTable.isMain, 1),
+          eq(messagesTable.sender, 'user')
+        )
+      )
+      .orderBy(asc(messagesTable.timestamp))
+      .limit(1);
+
+    const agentRows = await db
+      .select({
+        id: messagesTable.id,
+        conversationId: messagesTable.conversationId,
+        content: messagesTable.content,
+        sender: messagesTable.sender,
+        timestamp: messagesTable.timestamp,
+        metadata: messagesTable.metadata,
+      })
+      .from(messagesTable)
+      .innerJoin(conversationsTable, eq(messagesTable.conversationId, conversationsTable.id))
+      .where(
+        and(
+          eq(conversationsTable.taskId, taskId),
+          eq(conversationsTable.isMain, 1),
+          eq(messagesTable.sender, 'agent')
+        )
+      )
+      .orderBy(desc(messagesTable.timestamp))
+      .limit(1);
+
+    return {
+      firstUserMessage: userRows.length > 0 ? this.mapDrizzleMessageRow(userRows[0] as MessageRow) : null,
+      lastAgentMessage: agentRows.length > 0 ? this.mapDrizzleMessageRow(agentRows[0] as MessageRow) : null,
+    };
+  }
+
   async getLastAgentMessage(taskId: string): Promise<Message | null> {
     if (this.disabled) return null;
     const { db } = await getDrizzleClient();

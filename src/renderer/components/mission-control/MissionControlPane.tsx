@@ -28,43 +28,57 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
   const actionText = useTaskAction(task.id);
   const initialPrompt = (task.metadata as any)?.initialPrompt as string | null;
 
-  const { lastAgentMessage, loading: summaryLoading } = useTaskSummary(task.id, tier === 'idle');
+  const { firstUserMessage, lastAgentMessage, loading: summaryLoading } = useTaskSummary(
+    task.id,
+    tier === 'idle'
+  );
 
   if (tier === 'idle') {
+    const displayPrompt = initialPrompt || firstUserMessage;
+
     return (
       <motion.div
         layout
         layoutId={`mc-pane-${task.id}`}
         onClick={() => onSelectTask(task)}
-        className="cursor-pointer rounded-lg border border-border/60 bg-muted/20 p-3 transition-colors hover:bg-muted/40"
+        className="min-h-[5.5rem] cursor-pointer rounded-lg border border-border/60 bg-muted/20 p-3 transition-colors hover:bg-muted/40"
       >
-        {/* Header */}
+        {/* Row 1: dot + task name (full width) */}
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 flex-shrink-0 rounded-full bg-muted-foreground/30" />
           <span className="min-w-0 flex-1 truncate text-sm font-medium">{task.name}</span>
-          <span className="flex-shrink-0 text-xs text-muted-foreground">{project.name}</span>
+        </div>
+
+        {/* Row 2: project + relative time */}
+        <div className="ml-4 mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground/60">
+          <span className="truncate">{project.name}</span>
           {task.updatedAt && (
-            <RelativeTime
-              value={task.updatedAt}
-              className="flex-shrink-0 text-xs text-muted-foreground/60"
-            />
+            <>
+              <span>&middot;</span>
+              <RelativeTime value={task.updatedAt} className="flex-shrink-0" />
+            </>
           )}
         </div>
 
-        {/* Initial prompt */}
-        {initialPrompt && (
-          <p className="mt-1.5 line-clamp-1 text-xs text-muted-foreground/80">{initialPrompt}</p>
-        )}
-
-        {/* Last agent message */}
+        {/* Content */}
         {summaryLoading ? (
-          <div className="mt-1.5 h-3 w-3/4 animate-pulse rounded bg-muted-foreground/10" />
+          <div className="mt-2 space-y-1.5">
+            <div className="h-3 w-3/4 animate-pulse rounded bg-muted-foreground/10" />
+            <div className="h-3 w-1/2 animate-pulse rounded bg-muted-foreground/10" />
+          </div>
         ) : (
-          lastAgentMessage && (
-            <p className="mt-1 line-clamp-2 text-xs italic text-muted-foreground/60">
-              {lastAgentMessage}
-            </p>
-          )
+          <>
+            {displayPrompt && (
+              <p className="mt-2 line-clamp-2 text-xs text-muted-foreground/80">
+                {displayPrompt}
+              </p>
+            )}
+            {lastAgentMessage && (
+              <p className="mt-1 line-clamp-2 text-xs italic text-muted-foreground/60">
+                {lastAgentMessage}
+              </p>
+            )}
+          </>
         )}
       </motion.div>
     );
