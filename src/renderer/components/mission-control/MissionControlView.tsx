@@ -84,7 +84,7 @@ const MissionControlView: React.FC<MissionControlViewProps> = ({
                 onSelectTask={onSelectTask}
               />
             ) : (
-              <div key="grid" className="space-y-4">
+              <div key="grid" className="flex min-h-full flex-col gap-4">
                 {/* Awaiting input section */}
                 {awaitingTasks.length > 0 && (
                   <div>
@@ -131,13 +131,16 @@ const MissionControlView: React.FC<MissionControlViewProps> = ({
 
                 {/* Idle section */}
                 {idleTasks.length > 0 && (
-                  <div>
+                  <div className="flex flex-1 flex-col min-h-0">
                     {(awaitingTasks.length > 0 || runningTasks.length > 0) && (
                       <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                         Idle
                       </h3>
                     )}
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div
+                      className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2"
+                      style={{ gridAutoRows: '1fr' }}
+                    >
                       {idleTasks.map((mcTask) => (
                         <MissionControlPane
                           key={mcTask.task.id}

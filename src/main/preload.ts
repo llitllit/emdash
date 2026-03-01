@@ -1072,6 +1072,7 @@ export interface ElectronAPI {
     success: boolean;
     firstUserMessage?: any;
     lastAgentMessage?: any;
+    recentMessages?: any[];
     error?: string;
   }>;
   deleteConversation: (conversationId: string) => Promise<{ success: boolean; error?: string }>;

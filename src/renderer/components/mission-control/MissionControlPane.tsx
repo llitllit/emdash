@@ -28,7 +28,7 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
   const actionText = useTaskAction(task.id);
   const initialPrompt = (task.metadata as any)?.initialPrompt as string | null;
 
-  const { firstUserMessage, lastAgentMessage, loading: summaryLoading } = useTaskSummary(
+  const { firstUserMessage, recentMessages, loading: summaryLoading } = useTaskSummary(
     task.id,
     tier === 'idle'
   );
@@ -41,16 +41,16 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
         layout
         layoutId={`mc-pane-${task.id}`}
         onClick={() => onSelectTask(task)}
-        className="min-h-[5.5rem] cursor-pointer rounded-lg border border-border/60 bg-muted/20 p-3 transition-colors hover:bg-muted/40"
+        className="flex h-full cursor-pointer flex-col overflow-hidden rounded-lg border border-border/60 bg-muted/20 p-3 transition-colors hover:bg-muted/40"
       >
         {/* Row 1: dot + task name (full width) */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-shrink-0 items-center gap-2">
           <span className="h-2 w-2 flex-shrink-0 rounded-full bg-muted-foreground/30" />
           <span className="min-w-0 flex-1 truncate text-sm font-medium">{task.name}</span>
         </div>
 
         {/* Row 2: project + relative time */}
-        <div className="ml-4 mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground/60">
+        <div className="ml-4 mt-0.5 flex flex-shrink-0 items-center gap-1.5 text-xs text-muted-foreground/60">
           <span className="truncate">{project.name}</span>
           {task.updatedAt && (
             <>
@@ -60,26 +60,43 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
           )}
         </div>
 
-        {/* Content */}
+        {/* Conversation log */}
         {summaryLoading ? (
           <div className="mt-2 space-y-1.5">
             <div className="h-3 w-3/4 animate-pulse rounded bg-muted-foreground/10" />
             <div className="h-3 w-1/2 animate-pulse rounded bg-muted-foreground/10" />
+            <div className="h-3 w-2/3 animate-pulse rounded bg-muted-foreground/10" />
           </div>
-        ) : (
-          <>
-            {displayPrompt && (
-              <p className="mt-2 line-clamp-2 text-xs text-muted-foreground/80">
-                {displayPrompt}
-              </p>
-            )}
-            {lastAgentMessage && (
-              <p className="mt-1 line-clamp-2 text-xs italic text-muted-foreground/60">
-                {lastAgentMessage}
-              </p>
-            )}
-          </>
-        )}
+        ) : recentMessages.length > 0 ? (
+          <div className="mt-2 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+            {recentMessages.map((msg) => (
+              <div key={msg.id} className="text-xs">
+                <span
+                  className={
+                    msg.sender === 'user'
+                      ? 'font-medium text-foreground/70'
+                      : 'text-muted-foreground/60'
+                  }
+                >
+                  {msg.sender === 'user' ? 'You' : 'Agent'}:
+                </span>{' '}
+                <span
+                  className={
+                    msg.sender === 'user'
+                      ? 'text-foreground/70'
+                      : 'text-muted-foreground/60'
+                  }
+                >
+                  {msg.content.length > 200 ? msg.content.slice(0, 200) + '...' : msg.content}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : displayPrompt ? (
+          <p className="mt-2 line-clamp-2 text-xs text-muted-foreground/80">
+            {displayPrompt}
+          </p>
+        ) : null}
       </motion.div>
     );
   }

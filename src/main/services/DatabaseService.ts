@@ -550,19 +550,21 @@ export class DatabaseService {
 
   async getTaskSummaryMessages(
     taskId: string
-  ): Promise<{ firstUserMessage: Message | null; lastAgentMessage: Message | null }> {
-    if (this.disabled) return { firstUserMessage: null, lastAgentMessage: null };
+  ): Promise<{ firstUserMessage: Message | null; lastAgentMessage: Message | null; recentMessages: Message[] }> {
+    if (this.disabled) return { firstUserMessage: null, lastAgentMessage: null, recentMessages: [] };
     const { db } = await getDrizzleClient();
 
+    const messageColumns = {
+      id: messagesTable.id,
+      conversationId: messagesTable.conversationId,
+      content: messagesTable.content,
+      sender: messagesTable.sender,
+      timestamp: messagesTable.timestamp,
+      metadata: messagesTable.metadata,
+    };
+
     const userRows = await db
-      .select({
-        id: messagesTable.id,
-        conversationId: messagesTable.conversationId,
-        content: messagesTable.content,
-        sender: messagesTable.sender,
-        timestamp: messagesTable.timestamp,
-        metadata: messagesTable.metadata,
-      })
+      .select(messageColumns)
       .from(messagesTable)
       .innerJoin(conversationsTable, eq(messagesTable.conversationId, conversationsTable.id))
       .where(
@@ -576,14 +578,7 @@ export class DatabaseService {
       .limit(1);
 
     const agentRows = await db
-      .select({
-        id: messagesTable.id,
-        conversationId: messagesTable.conversationId,
-        content: messagesTable.content,
-        sender: messagesTable.sender,
-        timestamp: messagesTable.timestamp,
-        metadata: messagesTable.metadata,
-      })
+      .select(messageColumns)
       .from(messagesTable)
       .innerJoin(conversationsTable, eq(messagesTable.conversationId, conversationsTable.id))
       .where(
@@ -596,9 +591,25 @@ export class DatabaseService {
       .orderBy(desc(messagesTable.timestamp))
       .limit(1);
 
+    // Fetch last 20 messages (user + agent) in descending order, then reverse to chronological
+    const recentRows = await db
+      .select(messageColumns)
+      .from(messagesTable)
+      .innerJoin(conversationsTable, eq(messagesTable.conversationId, conversationsTable.id))
+      .where(
+        and(
+          eq(conversationsTable.taskId, taskId),
+          eq(conversationsTable.isMain, 1),
+          or(eq(messagesTable.sender, 'user'), eq(messagesTable.sender, 'agent'))
+        )
+      )
+      .orderBy(desc(messagesTable.timestamp))
+      .limit(20);
+
     return {
       firstUserMessage: userRows.length > 0 ? this.mapDrizzleMessageRow(userRows[0] as MessageRow) : null,
       lastAgentMessage: agentRows.length > 0 ? this.mapDrizzleMessageRow(agentRows[0] as MessageRow) : null,
+      recentMessages: recentRows.reverse().map((row) => this.mapDrizzleMessageRow(row as MessageRow)),
     };
   }
 

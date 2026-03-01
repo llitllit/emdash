@@ -1093,6 +1093,7 @@ declare global {
         success: boolean;
         firstUserMessage?: any;
         lastAgentMessage?: any;
+        recentMessages?: any[];
         error?: string;
       }>;
       getOrCreateDefaultConversation: (
@@ -1814,6 +1815,7 @@ export interface ElectronAPI {
     success: boolean;
     firstUserMessage?: any;
     lastAgentMessage?: any;
+    recentMessages?: any[];
     error?: string;
   }>;
   getOrCreateDefaultConversation: (
