@@ -516,6 +516,14 @@ const AppContent: React.FC = () => {
     window.dispatchEvent(new CustomEvent('emdash:open-in-editor'));
   }, []);
 
+  const handleToggleMissionControl = useCallback(() => {
+    if (projectMgmt.showMissionControl) {
+      projectMgmt.handleGoHome();
+    } else {
+      projectMgmt.handleGoToMissionControl();
+    }
+  }, [projectMgmt.showMissionControl, projectMgmt.handleGoHome, projectMgmt.handleGoToMissionControl]);
+
   const handleToggleSettingsPage = useCallback(() => {
     if (showSettingsPage) {
       handleCloseSettingsPage();
@@ -549,6 +557,7 @@ const AppContent: React.FC = () => {
                 handleNextNeedsInput={taskMgmt.handleNextNeedsInput}
                 handleNewTask={taskMgmt.handleNewTask}
                 handleOpenInEditor={handleOpenInEditor}
+                handleToggleMissionControl={handleToggleMissionControl}
               />
               <RightSidebarBridge
                 onCollapsedChange={handleRightSidebarCollapsedChange}
@@ -629,6 +638,8 @@ const AppContent: React.FC = () => {
                       pinnedTaskIds={pinnedTaskIds}
                       onPinTask={handlePinTask}
                       isHomeView={projectMgmt.showHomeView}
+                      onGoToMissionControl={projectMgmt.handleGoToMissionControl}
+                      isMissionControlView={projectMgmt.showMissionControl}
                       onGoToSkills={projectMgmt.handleGoToSkills}
                       isSkillsView={projectMgmt.showSkillsView}
                       onCloseSettingsPage={handleCloseSettingsPage}
@@ -655,7 +666,9 @@ const AppContent: React.FC = () => {
                         showKanban={showKanban}
                         showHomeView={projectMgmt.showHomeView}
                         showSkillsView={projectMgmt.showSkillsView}
+                        showMissionControl={projectMgmt.showMissionControl}
                         showSettingsPage={showSettingsPage}
+                        projects={projectMgmt.projects}
                         settingsPageInitialTab={settingsPageInitialTab}
                         handleCloseSettingsPage={handleCloseSettingsPage}
                         projectDefaultBranch={projectMgmt.projectDefaultBranch}

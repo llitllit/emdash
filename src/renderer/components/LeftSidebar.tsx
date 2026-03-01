@@ -21,6 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import {
   Home,
+  LayoutGrid,
   Plus,
   FolderOpen,
   FolderClosed,
@@ -68,6 +69,8 @@ interface LeftSidebarProps {
   pinnedTaskIds?: Set<string>;
   onPinTask?: (task: Task) => void;
   isHomeView?: boolean;
+  onGoToMissionControl?: () => void;
+  isMissionControlView?: boolean;
   onGoToSkills?: () => void;
   isSkillsView?: boolean;
   onCloseSettingsPage?: () => void;
@@ -214,7 +217,7 @@ const ProjectRow: React.FC<ProjectRowProps> = ({
 
   const statusGradient =
     projectStatus === 'awaiting_input'
-      ? 'bg-orange-500/[0.08]'
+      ? 'bg-orange-500/[0.15]'
       : projectStatus === 'running'
         ? 'bg-sky-400/[0.10]'
         : '';
@@ -238,7 +241,7 @@ const ProjectRow: React.FC<ProjectRowProps> = ({
         <div
           className={`group/project relative flex w-full min-w-0 items-center gap-1.5 rounded-md py-1.5 pl-1 pr-1 text-sm font-medium hover:bg-accent ${
             isProjectActive ? 'bg-black/[0.06] dark:bg-white/[0.08]' : ''
-          } ${statusGradient}`}
+          } ${statusGradient} group-data-[state=open]/collapsible:!bg-transparent`}
           title={projectIsRemote ? 'Remote Project' : undefined}
         >
           <CollapsibleTrigger asChild>
@@ -441,7 +444,7 @@ const TaskRow: React.FC<{
   const taskStatus = useTaskStatus(task.id);
   const taskGradient =
     taskStatus === 'awaiting_input'
-      ? 'bg-orange-500/[0.08]'
+      ? 'bg-orange-500/[0.15]'
       : taskStatus === 'running'
         ? 'bg-sky-400/[0.10]'
         : '';
@@ -485,6 +488,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   pinnedTaskIds,
   onPinTask,
   isHomeView,
+  onGoToMissionControl,
+  isMissionControlView,
   onGoToSkills,
   isSkillsView,
   onCloseSettingsPage,
@@ -544,6 +549,24 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 </Button>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            {onGoToMissionControl && (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  className={`min-w-0 ${isMissionControlView ? 'bg-black/[0.06] dark:bg-white/[0.08]' : ''}`}
+                >
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleNavigationWithCloseSettings(onGoToMissionControl)}
+                    aria-label="Mission Control"
+                    className="w-full justify-start"
+                  >
+                    <LayoutGrid className="h-5 w-5 text-muted-foreground sm:h-4 sm:w-4" />
+                    <span className="hidden text-sm font-medium sm:inline">Mission Control</span>
+                  </Button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
             {onGoToSkills && (
               <SidebarMenuItem>
                 <SidebarMenuButton

@@ -30,6 +30,7 @@ export interface KeyboardSettings {
   nextActiveTask?: ShortcutBinding;
   prevActiveTask?: ShortcutBinding;
   nextNeedsInput?: ShortcutBinding;
+  toggleMissionControl?: ShortcutBinding;
 }
 
 export interface ShortcutConfig {
@@ -100,6 +101,9 @@ export interface GlobalShortcutHandlers {
   onNextActiveTask?: () => void;
   onPrevActiveTask?: () => void;
   onNextNeedsInput?: () => void;
+
+  // Mission Control
+  onToggleMissionControl?: () => void;
 
   // State checks
   isCommandPaletteOpen?: boolean;

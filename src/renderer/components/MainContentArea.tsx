@@ -4,6 +4,7 @@ import KanbanBoard from './kanban/KanbanBoard';
 import MultiAgentTask from './MultiAgentTask';
 import ProjectMainView from './ProjectMainView';
 import HomeView from './HomeView';
+import MissionControlView from './mission-control/MissionControlView';
 import SkillsView from './skills/SkillsView';
 import SettingsPage from './SettingsPage';
 import TaskCreationLoading from './TaskCreationLoading';
@@ -20,7 +21,9 @@ interface MainContentAreaProps {
   showKanban: boolean;
   showHomeView: boolean;
   showSkillsView: boolean;
+  showMissionControl: boolean;
   showSettingsPage: boolean;
+  projects: Project[];
   settingsPageInitialTab?: SettingsPageTab;
   handleCloseSettingsPage?: () => void;
   projectDefaultBranch: string;
@@ -59,7 +62,9 @@ const MainContentArea: React.FC<MainContentAreaProps> = ({
   showKanban,
   showHomeView,
   showSkillsView,
+  showMissionControl,
   showSettingsPage,
+  projects,
   settingsPageInitialTab,
   handleCloseSettingsPage,
   projectDefaultBranch,
@@ -108,6 +113,15 @@ const MainContentArea: React.FC<MainContentAreaProps> = ({
 
   if (showSkillsView) {
     return <SkillsView />;
+  }
+
+  if (showMissionControl) {
+    return (
+      <MissionControlView
+        projects={projects}
+        onSelectTask={handleSelectTask}
+      />
+    );
   }
 
   if (showHomeView) {

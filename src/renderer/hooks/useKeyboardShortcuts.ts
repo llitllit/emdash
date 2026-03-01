@@ -25,7 +25,8 @@ export type ShortcutSettingsKey =
   | 'openInEditor'
   | 'nextActiveTask'
   | 'prevActiveTask'
-  | 'nextNeedsInput';
+  | 'nextNeedsInput'
+  | 'toggleMissionControl';
 
 export interface AppShortcut {
   key: string;
@@ -238,6 +239,15 @@ export const APP_SHORTCUTS: Record<string, AppShortcut> = {
     category: 'Navigation',
     settingsKey: 'nextNeedsInput',
   },
+
+  TOGGLE_MISSION_CONTROL: {
+    key: 'm',
+    modifier: 'cmd+shift',
+    label: 'Mission Control',
+    description: 'Toggle Mission Control view',
+    category: 'Navigation',
+    settingsKey: 'toggleMissionControl',
+  },
 };
 
 /**
@@ -400,6 +410,7 @@ export function useKeyboardShortcuts(handlers: GlobalShortcutHandlers) {
       nextActiveTask: getEffectiveConfig(APP_SHORTCUTS.NEXT_ACTIVE_TASK, custom),
       prevActiveTask: getEffectiveConfig(APP_SHORTCUTS.PREV_ACTIVE_TASK, custom),
       nextNeedsInput: getEffectiveConfig(APP_SHORTCUTS.NEXT_NEEDS_INPUT, custom),
+      toggleMissionControl: getEffectiveConfig(APP_SHORTCUTS.TOGGLE_MISSION_CONTROL, custom),
     };
   }, [handlers.customKeyboardSettings]);
 
@@ -504,6 +515,12 @@ export function useKeyboardShortcuts(handlers: GlobalShortcutHandlers) {
       {
         config: effectiveShortcuts.nextNeedsInput,
         handler: () => handlers.onNextNeedsInput?.(),
+        priority: 'global',
+        requiresClosed: true,
+      },
+      {
+        config: effectiveShortcuts.toggleMissionControl,
+        handler: () => handlers.onToggleMissionControl?.(),
         priority: 'global',
         requiresClosed: true,
       },

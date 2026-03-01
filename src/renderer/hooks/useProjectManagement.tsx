@@ -48,6 +48,7 @@ export const useProjectManagement = (options: UseProjectManagementOptions) => {
   // Always start on home view (e.g. after app restart)
   const [showHomeView, setShowHomeView] = useState<boolean>(true);
   const [showSkillsView, setShowSkillsView] = useState(false);
+  const [showMissionControl, setShowMissionControl] = useState(false);
   const [projectBranchOptions, setProjectBranchOptions] = useState<
     Array<{ value: string; label: string }>
   >([]);
@@ -81,6 +82,7 @@ export const useProjectManagement = (options: UseProjectManagementOptions) => {
       setSelectedProject(project);
       setShowHomeView(false);
       setShowSkillsView(false);
+      setShowMissionControl(false);
       setActiveTask(null);
       setShowEditorMode(false);
       setShowKanban(false);
@@ -101,6 +103,18 @@ export const useProjectManagement = (options: UseProjectManagementOptions) => {
     setSelectedProject(null);
     setShowHomeView(true);
     setShowSkillsView(false);
+    setShowMissionControl(false);
+    setActiveTask(null);
+    setShowEditorMode(false);
+    setShowKanban(false);
+    saveActiveIds(null, null);
+  };
+
+  const handleGoToMissionControl = () => {
+    setSelectedProject(null);
+    setShowHomeView(false);
+    setShowSkillsView(false);
+    setShowMissionControl(true);
     setActiveTask(null);
     setShowEditorMode(false);
     setShowKanban(false);
@@ -115,6 +129,7 @@ export const useProjectManagement = (options: UseProjectManagementOptions) => {
     setSelectedProject(null);
     setShowHomeView(false);
     setShowSkillsView(true);
+    setShowMissionControl(false);
     setActiveTask(null);
     setShowEditorMode(false);
     setShowKanban(false);
@@ -636,6 +651,9 @@ export const useProjectManagement = (options: UseProjectManagementOptions) => {
     setShowHomeView,
     showSkillsView,
     setShowSkillsView,
+    showMissionControl,
+    setShowMissionControl,
+    handleGoToMissionControl,
     handleGoToSkills,
     projectBranchOptions,
     projectDefaultBranch,
