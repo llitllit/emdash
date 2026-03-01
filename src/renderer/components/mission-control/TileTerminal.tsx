@@ -3,8 +3,6 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { PROVIDER_IDS, type ProviderId } from '@shared/providers/registry';
 import { makePtyId } from '@shared/ptyId';
-import { terminalSessionRegistry } from '../../terminal/SessionRegistry';
-import type { TerminalSessionManager } from '../../terminal/TerminalSessionManager';
 
 interface TileTerminalProps {
   taskId: string;
@@ -13,15 +11,11 @@ interface TileTerminalProps {
 }
 
 /**
- * Lightweight terminal view for Mission Control tiles.
+ * Lightweight read-only terminal view for Mission Control tiles.
  *
- * If an existing TerminalSessionManager exists in the registry (running/awaiting
- * tasks, or idle tasks that were previously viewed), it re-attaches that session
- * in preview mode (suppressing PTY resize).
- *
- * If no session exists (idle task never opened this app session), it creates a
- * standalone xterm.js Terminal and loads the saved snapshot for ANSI-colored display
- * without starting a PTY process.
+ * Always creates a standalone xterm.js Terminal (never touches existing sessions).
+ * Loads the saved snapshot for initial content, then subscribes to onPtyData
+ * for live streaming. This avoids stealing the session from the main task view.
  */
 const TileTerminal: React.FC<TileTerminalProps> = ({ taskId, agentId, className }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -30,34 +24,6 @@ const TileTerminal: React.FC<TileTerminalProps> = ({ taskId, agentId, className 
     const container = containerRef.current;
     if (!container) return;
 
-    // Try to find an existing session in the registry
-    let session: TerminalSessionManager | undefined;
-
-    // Try agentId first for fast lookup, then fall back to iterating all providers
-    const providerOrder: ProviderId[] = agentId
-      ? [agentId as ProviderId, ...PROVIDER_IDS.filter((p) => p !== agentId)]
-      : [...PROVIDER_IDS];
-
-    for (const prov of providerOrder) {
-      const ptyId = makePtyId(prov, 'main', taskId);
-      session = terminalSessionRegistry.getSession(ptyId);
-      if (session) break;
-    }
-
-    if (session) {
-      // Existing session — attach in preview mode (suppresses PTY resize)
-      session.setPreviewMode(true);
-      session.attach(container);
-      session.scrollToBottom();
-
-      const s = session; // capture for cleanup
-      return () => {
-        s.setPreviewMode(false);
-        s.detach();
-      };
-    }
-
-    // No session — create standalone terminal for snapshot display (no PTY)
     const terminal = new Terminal({
       fontSize: 13,
       lineHeight: 1.2,
@@ -80,13 +46,20 @@ const TileTerminal: React.FC<TileTerminalProps> = ({ taskId, agentId, className 
       fitAddon.fit();
     } catch {}
 
-    // Load snapshot data asynchronously
+    // Try agentId first for fast lookup, then fall back to iterating all providers
+    const providerOrder: ProviderId[] = agentId
+      ? [agentId as ProviderId, ...PROVIDER_IDS.filter((p) => p !== agentId)]
+      : [...PROVIDER_IDS];
+
+    // Load snapshot and subscribe to live data
     let cancelled = false;
+    let offPtyData: (() => void) | undefined;
+
     (async () => {
       const api = window.electronAPI;
       if (!api?.ptyGetSnapshot) return;
 
-      for (const prov of PROVIDER_IDS) {
+      for (const prov of providerOrder) {
         if (cancelled) return;
         const ptyId = makePtyId(prov, 'main', taskId);
         try {
@@ -95,6 +68,14 @@ const TileTerminal: React.FC<TileTerminalProps> = ({ taskId, agentId, className 
           if (res?.ok && res.snapshot?.data) {
             terminal.write(res.snapshot.data);
             terminal.scrollToBottom();
+
+            // Subscribe to live PTY output
+            if (api.onPtyData) {
+              offPtyData = api.onPtyData(ptyId, (data: string) => {
+                terminal.write(data);
+                terminal.scrollToBottom();
+              });
+            }
             return;
           }
         } catch {
@@ -112,6 +93,7 @@ const TileTerminal: React.FC<TileTerminalProps> = ({ taskId, agentId, className 
 
     return () => {
       cancelled = true;
+      offPtyData?.();
       resizeObserver.disconnect();
       terminal.dispose();
     };
