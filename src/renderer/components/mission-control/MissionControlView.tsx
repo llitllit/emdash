@@ -93,7 +93,7 @@ const MissionControlView: React.FC<MissionControlViewProps> = ({
                         Needs Attention
                       </h3>
                     )}
-                    <div className="grid gap-3 grid-cols-1 lg:grid-cols-2">
+                    <div className="grid gap-3 grid-cols-1 lg:grid-cols-2" style={{ gridAutoRows: '1fr' }}>
                       {awaitingTasks.map((mcTask) => (
                         <MissionControlPane
                           key={mcTask.task.id}
@@ -116,7 +116,7 @@ const MissionControlView: React.FC<MissionControlViewProps> = ({
                         Running
                       </h3>
                     )}
-                    <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gridAutoRows: '1fr' }}>
                       {runningTasks.map((mcTask) => (
                         <MissionControlPane
                           key={mcTask.task.id}
