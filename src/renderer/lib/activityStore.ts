@@ -5,11 +5,14 @@ import { PROVIDER_IDS } from '@shared/providers/registry';
 import { taskAttentionStore } from './taskAttentionStore';
 
 type Listener = (busy: boolean) => void;
+type ActionListener = (action: string | null) => void;
 
 class ActivityStore {
   private listeners = new Map<string, Set<Listener>>();
   private states = new Map<string, boolean>();
   private lastSignals = new Map<string, ActivitySignal>();
+  private lastActions = new Map<string, string>();
+  private actionListeners = new Map<string, Set<ActionListener>>();
   private timers = new Map<string, ReturnType<typeof setTimeout>>();
   private busySince = new Map<string, number>();
   private subscribed = false;
@@ -26,8 +29,9 @@ class ActivityStore {
         for (const wsId of this.subscribedIds) {
           if (!id.endsWith(wsId)) continue;
           const prov = parsePtyId(id)?.providerId || '';
-          const signal = classifyActivity(prov, info?.chunk || '');
+          const { signal, actionText } = classifyActivity(prov, info?.chunk || '');
           if (signal !== 'neutral') this.lastSignals.set(wsId, signal);
+          if (actionText) this.setAction(wsId, actionText);
           if (signal === 'busy') {
             taskAttentionStore.markActive(wsId);
             this.setBusy(wsId, true, true);
@@ -88,6 +92,7 @@ class ActivityStore {
       if (prev) clearTimeout(prev);
       this.timers.delete(wsId);
       this.busySince.delete(wsId);
+      this.clearAction(wsId);
       if (this.states.get(wsId) !== false) {
         this.states.set(wsId, false);
         this.emit(wsId, false);
@@ -118,6 +123,45 @@ class ActivityStore {
     return this.lastSignals.get(wsId) || 'idle';
   }
 
+  getLastAction(wsId: string): string | null {
+    return this.lastActions.get(wsId) || null;
+  }
+
+  subscribeAction(wsId: string, fn: ActionListener): () => void {
+    const set = this.actionListeners.get(wsId) || new Set<ActionListener>();
+    set.add(fn);
+    this.actionListeners.set(wsId, set);
+    fn(this.lastActions.get(wsId) || null);
+    return () => {
+      const s = this.actionListeners.get(wsId);
+      if (s) {
+        s.delete(fn);
+        if (s.size === 0) this.actionListeners.delete(wsId);
+      }
+    };
+  }
+
+  private setAction(wsId: string, action: string) {
+    const prev = this.lastActions.get(wsId);
+    if (prev === action) return;
+    this.lastActions.set(wsId, action);
+    this.emitAction(wsId, action);
+  }
+
+  private clearAction(wsId: string) {
+    if (!this.lastActions.has(wsId)) return;
+    this.lastActions.delete(wsId);
+    this.emitAction(wsId, null);
+  }
+
+  private emitAction(wsId: string, action: string | null) {
+    const ls = this.actionListeners.get(wsId);
+    if (!ls) return;
+    for (const fn of ls) {
+      try { fn(action); } catch {}
+    }
+  }
+
   setTaskBusy(wsId: string, busy: boolean) {
     this.setBusy(wsId, busy, false);
   }
@@ -144,8 +188,9 @@ class ActivityStore {
           const ptyId = makePtyId(prov, kind, wsId);
           const off = api?.onPtyData?.(ptyId, (chunk: string) => {
             try {
-              const signal = classifyActivity(prov, chunk || '');
+              const { signal, actionText } = classifyActivity(prov, chunk || '');
               if (signal !== 'neutral') this.lastSignals.set(wsId, signal);
+              if (actionText) this.setAction(wsId, actionText);
               if (signal === 'busy') {
                 taskAttentionStore.markActive(wsId);
                 this.setBusy(wsId, true, true);

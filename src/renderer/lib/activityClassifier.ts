@@ -1,14 +1,20 @@
 export type ActivitySignal = 'busy' | 'idle' | 'neutral' | 'awaiting_input';
 
-function stripAnsi(s: string): string {
-  // Remove ANSI escape codes and carriage returns
-  return s
-    .replace(/\x1b\[[0-9;]*[A-Za-z]/g, '')
-    .replace(/\r/g, '')
-    .replace(/\x1b\][^\x07]*\x07/g, '');
+export interface ActivityResult {
+  signal: ActivitySignal;
+  actionText?: string;
 }
 
-export function classifyActivity(
+function stripAnsi(s: string): string {
+  return s
+    .replace(/\x1b\[\??[0-9;]*[a-zA-Z]/g, '')   // CSI + DEC private mode
+    .replace(/\x1b\][^\x07]*\x07/g, '')           // OSC sequences
+    .replace(/\x1b[()][0-9A-Za-z]/g, '')          // Character set selection
+    .replace(/\x1b[#=>\x1b]/g, '')                // Other ESC sequences
+    .replace(/[\r\x07]/g, '');                     // CR + BEL
+}
+
+function classifySignal(
   provider: string | null | undefined,
   chunk: string
 ): ActivitySignal {
@@ -294,4 +300,53 @@ export function classifyActivity(
   if (/\[y\/n\]|\[Y\/N\]/i.test(text)) return 'awaiting_input';
   if (/Add a follow-up|Ready|Awaiting|Press Enter|Next command/i.test(text)) return 'idle';
   return 'neutral';
+}
+
+function extractActionText(text: string, signal: ActivitySignal): string | undefined {
+  if (signal === 'awaiting_input') {
+    let m = text.match(/(Do you want to .+?)(\?|$)/i);
+    if (m) return m[1].trim() + '?';
+    m = text.match(/(Approve|Allow|Confirm).{0,50}/i);
+    if (m) return m[0].trim();
+    return undefined;
+  }
+
+  if (signal !== 'busy') return undefined;
+
+  let m: RegExpMatchArray | null;
+
+  // "Running tool: X" / "Tool: X"
+  m = text.match(/(?:Running\s+tool|Tool):\s*\S.*/i);
+  if (m) return m[0].trim();
+
+  // "Responding to ..."
+  m = text.match(/Responding to\b.*/i);
+  if (m) return m[0].trim();
+
+  // Timer pattern: text before (Ns•Esc to interrupt)
+  m = text.match(/(.+?)\s*\(\s*(?:\d+\s*m\s*)?\d+\s*s\s*[•·]\s*Esc/i);
+  if (m && m[1].trim()) return m[1].trim();
+
+  // Spinner followed by context text
+  m = text.match(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]\s+(.{3,})/);
+  if (m) return m[1].trim();
+
+  // Common action verbs
+  m = text.match(
+    /\b(Thinking|Processing|Analyzing|Working|Generating|Building|Searching|Scanning|Reading|Applying|Planning|Executing|Running|Investigating|Compiling|Optimizing|Refactoring|Updating|Parsing|Checking|Wrangling|Crafting|Reasoning)\b/i
+  );
+  if (m) return m[1] + '...';
+
+  return undefined;
+}
+
+export function classifyActivity(
+  provider: string | null | undefined,
+  chunk: string
+): ActivityResult {
+  const signal = classifySignal(provider, chunk);
+  if (signal === 'neutral' || signal === 'idle') return { signal };
+  const text = stripAnsi((chunk || '').toString());
+  const actionText = extractActionText(text, signal);
+  return { signal, actionText };
 }

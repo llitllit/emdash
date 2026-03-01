@@ -225,7 +225,7 @@ const MultiAgentTask: React.FC<Props> = ({
         if (!sent) send();
       }, 1000);
       try {
-        const signal = classifyActivity(agent, chunk);
+        const { signal } = classifyActivity(agent, chunk);
         if (signal === 'idle' && !sent) {
           setTimeout(send, 200);
         }
@@ -350,7 +350,7 @@ const MultiAgentTask: React.FC<Props> = ({
 
       const offData = (window as any).electronAPI?.onPtyData?.(ptyId, (chunk: string) => {
         try {
-          const signal = classifyActivity(variant.agent, chunk || '');
+          const { signal } = classifyActivity(variant.agent, chunk || '');
           if (signal === 'busy') setBusy(variantId, true);
           else if (signal === 'idle') setBusy(variantId, false);
           else armNeutral(variantId);

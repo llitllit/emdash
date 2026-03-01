@@ -4,6 +4,19 @@ import { activityStore } from '../lib/activityStore';
 export type TaskStatus = 'running' | 'awaiting_input' | 'idle';
 
 /**
+ * Returns the last semantic action text for a task (e.g., "Thinking...", "Running tool: Bash").
+ */
+export function useTaskAction(taskId: string): string | null {
+  const [action, setAction] = useState<string | null>(null);
+
+  useEffect(() => {
+    return activityStore.subscribeAction(taskId, setAction);
+  }, [taskId]);
+
+  return action;
+}
+
+/**
  * Returns the classified status for a single task: running, awaiting_input, or idle.
  */
 export function useTaskStatus(taskId: string): TaskStatus {

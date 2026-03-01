@@ -45,7 +45,7 @@ export function useInitialPromptInjection(opts: {
 
       // Heuristic: if classifier says idle, trigger a quicker send
       try {
-        const signal = classifyActivity(providerId, chunk);
+        const { signal } = classifyActivity(providerId, chunk);
         if (signal === 'idle' && !sent) {
           idleSeen = true;
           setTimeout(send, 250);

@@ -7,9 +7,11 @@ const FLUSH_INTERVAL_MS = 200;
 
 function stripAnsi(s: string): string {
   return s
-    .replace(/\x1b\[[0-9;]*[A-Za-z]/g, '')
-    .replace(/\r/g, '')
-    .replace(/\x1b\][^\x07]*\x07/g, '');
+    .replace(/\x1b\[\??[0-9;]*[a-zA-Z]/g, '')   // CSI + DEC private mode
+    .replace(/\x1b\][^\x07]*\x07/g, '')           // OSC sequences
+    .replace(/\x1b[()][0-9A-Za-z]/g, '')          // Character set selection
+    .replace(/\x1b[#=>\x1b]/g, '')                // Other ESC sequences
+    .replace(/[\r\x07]/g, '');                     // CR + BEL
 }
 
 interface BufferEntry {

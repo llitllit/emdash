@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import type { MissionControlTask } from './types';
 import type { Task } from '../../types/chat';
 import { usePtyTailBuffer } from './usePtyTailBuffer';
+import { useTaskAction } from '../../hooks/useTaskBusy';
 
 interface MissionControlPaneProps {
   mcTask: MissionControlTask;
@@ -22,6 +23,7 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
 }) => {
   const { task, project } = mcTask;
   const tailLines = usePtyTailBuffer(task.id);
+  const actionText = useTaskAction(task.id);
   const initialPrompt = (task.metadata as any)?.initialPrompt as string | null;
 
   if (tier === 'idle') {
@@ -59,8 +61,13 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
             {project.name}
           </span>
         </div>
+        {actionText && (
+          <div className="mt-1.5 truncate text-xs text-sky-300/80">
+            {actionText}
+          </div>
+        )}
         {tailLines.length > 0 && (
-          <div className="mt-2 truncate font-mono text-xs text-muted-foreground">
+          <div className="mt-1.5 truncate font-mono text-xs text-muted-foreground">
             {tailLines[tailLines.length - 1]}
           </div>
         )}
@@ -95,8 +102,15 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
         </span>
       </div>
 
+      {/* Action text */}
+      {actionText && (
+        <div className="mt-1.5 truncate text-xs text-orange-400/80">
+          {actionText}
+        </div>
+      )}
+
       {/* Original prompt */}
-      {initialPrompt && (
+      {!actionText && initialPrompt && (
         <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
           {initialPrompt}
         </p>
