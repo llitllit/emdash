@@ -59,7 +59,7 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
         )}
 
         {/* Terminal content */}
-        <div className="mt-2 min-h-0 flex-1 overflow-hidden rounded-md">
+        <div className="mt-2 min-h-0 flex-1 overflow-hidden rounded-md" onClick={(e) => e.stopPropagation()}>
           <TileTerminal taskId={task.id} agentId={task.agentId} />
         </div>
       </motion.div>
@@ -94,7 +94,7 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
             {actionText}
           </div>
         )}
-        <div className="mt-2 min-h-0 flex-1 overflow-hidden rounded-md">
+        <div className="mt-2 min-h-0 flex-1 overflow-hidden rounded-md" onClick={(e) => e.stopPropagation()}>
           <TileTerminal taskId={task.id} agentId={task.agentId} />
         </div>
       </motion.div>
@@ -143,7 +143,7 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
       )}
 
       {/* Terminal content */}
-      <div className="mt-2 min-h-0 flex-1 overflow-hidden rounded-md">
+      <div className="mt-2 min-h-0 flex-1 overflow-hidden rounded-md" onClick={(e) => e.stopPropagation()}>
         <TileTerminal taskId={task.id} agentId={task.agentId} />
       </div>
 

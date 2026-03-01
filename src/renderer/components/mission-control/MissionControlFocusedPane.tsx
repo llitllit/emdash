@@ -35,7 +35,7 @@ const MissionControlFocusedPane: React.FC<MissionControlFocusedPaneProps> = ({
     <motion.div
       layout
       layoutId={`mc-pane-${task.id}`}
-      className="mx-auto w-full max-w-2xl rounded-lg border border-orange-500/20 bg-orange-500/[0.04] p-6 ring-1 ring-orange-500/30"
+      className="flex w-full flex-1 flex-col rounded-lg border border-orange-500/20 bg-orange-500/[0.04] p-6 ring-1 ring-orange-500/30"
       style={{ boxShadow: '0 0 20px rgba(249,115,22,0.15)' }}
     >
       {/* Header */}
@@ -57,7 +57,7 @@ const MissionControlFocusedPane: React.FC<MissionControlFocusedPaneProps> = ({
       )}
 
       {/* Terminal */}
-      <div className="mt-3 h-48 overflow-hidden rounded-md">
+      <div className="mt-3 min-h-0 flex-1 overflow-hidden rounded-md">
         <TileTerminal taskId={task.id} agentId={task.agentId} />
       </div>
 

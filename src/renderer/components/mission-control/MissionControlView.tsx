@@ -89,20 +89,21 @@ const MissionControlView: React.FC<MissionControlViewProps> = ({
         onFilterChange={setFilter}
       />
 
-      <div className="min-h-0 flex-1 overflow-hidden p-4">
+      <div className="relative min-h-0 flex-1 overflow-hidden">
         <LayoutGroup>
           <AnimatePresence mode="popLayout">
             {focusedMcTask ? (
-              <MissionControlFocusedPane
-                key="focused"
-                mcTask={focusedMcTask}
-                onDismiss={handleAfterAction}
-                onSelectTask={onSelectTask}
-              />
+              <div key="focused" className="absolute inset-0 flex flex-col p-4">
+                <MissionControlFocusedPane
+                  mcTask={focusedMcTask}
+                  onDismiss={handleAfterAction}
+                  onSelectTask={onSelectTask}
+                />
+              </div>
             ) : (
               <div
                 key="grid"
-                className="h-full gap-3 p-0"
+                className="absolute inset-0 gap-3 p-4"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: `repeat(${cols}, 1fr)`,

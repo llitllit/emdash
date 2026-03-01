@@ -11,11 +11,11 @@ interface TileTerminalProps {
 }
 
 /**
- * Lightweight read-only terminal view for Mission Control tiles.
+ * Interactive terminal view for Mission Control tiles.
  *
  * Always creates a standalone xterm.js Terminal (never touches existing sessions).
  * Loads the saved snapshot for initial content, then subscribes to onPtyData
- * for live streaming. This avoids stealing the session from the main task view.
+ * for live streaming. Keyboard input is forwarded via ptyInput IPC.
  */
 const TileTerminal: React.FC<TileTerminalProps> = ({ taskId, agentId, className }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -29,14 +29,11 @@ const TileTerminal: React.FC<TileTerminalProps> = ({ taskId, agentId, className 
       lineHeight: 1.2,
       scrollback: 1000,
       convertEol: true,
-      disableStdin: true,
-      cursorBlink: false,
+      cursorBlink: true,
       cursorStyle: 'bar',
-      cursorInactiveStyle: 'none',
       theme: {
         background: '#1f2937',
         foreground: '#f9fafb',
-        cursor: 'transparent',
       },
     });
     const fitAddon = new FitAddon();
@@ -54,6 +51,8 @@ const TileTerminal: React.FC<TileTerminalProps> = ({ taskId, agentId, className 
     // Load snapshot and subscribe to live data
     let cancelled = false;
     let offPtyData: (() => void) | undefined;
+    // Store the resolved ptyId so onData can send input to the correct PTY
+    const ptyIdRef: { current: string | null } = { current: null };
 
     (async () => {
       const api = window.electronAPI;
@@ -66,6 +65,7 @@ const TileTerminal: React.FC<TileTerminalProps> = ({ taskId, agentId, className 
           const res = await api.ptyGetSnapshot({ id: ptyId });
           if (cancelled) return;
           if (res?.ok && res.snapshot?.data) {
+            ptyIdRef.current = ptyId;
             terminal.write(res.snapshot.data);
             terminal.scrollToBottom();
 
@@ -76,6 +76,14 @@ const TileTerminal: React.FC<TileTerminalProps> = ({ taskId, agentId, className 
                 terminal.scrollToBottom();
               });
             }
+
+            // Sync PTY size to current terminal dimensions
+            if (api.ptyResize) {
+              try {
+                api.ptyResize({ id: ptyId, cols: terminal.cols, rows: terminal.rows });
+              } catch {}
+            }
+
             return;
           }
         } catch {
@@ -84,9 +92,22 @@ const TileTerminal: React.FC<TileTerminalProps> = ({ taskId, agentId, className 
       }
     })();
 
+    // Forward keyboard input to the PTY
+    const onDataDisposable = terminal.onData((data) => {
+      const id = ptyIdRef.current;
+      if (id && window.electronAPI?.ptyInput) {
+        window.electronAPI.ptyInput({ id, data });
+      }
+    });
+
     const resizeObserver = new ResizeObserver(() => {
       try {
         fitAddon.fit();
+        // Notify PTY of new dimensions
+        const id = ptyIdRef.current;
+        if (id && window.electronAPI?.ptyResize) {
+          window.electronAPI.ptyResize({ id, cols: terminal.cols, rows: terminal.rows });
+        }
       } catch {}
     });
     resizeObserver.observe(container);
@@ -94,6 +115,7 @@ const TileTerminal: React.FC<TileTerminalProps> = ({ taskId, agentId, className 
     return () => {
       cancelled = true;
       offPtyData?.();
+      onDataDisposable.dispose();
       resizeObserver.disconnect();
       terminal.dispose();
     };
@@ -106,7 +128,6 @@ const TileTerminal: React.FC<TileTerminalProps> = ({ taskId, agentId, className 
       style={{
         width: '100%',
         height: '100%',
-        pointerEvents: 'none',
       }}
     />
   );
