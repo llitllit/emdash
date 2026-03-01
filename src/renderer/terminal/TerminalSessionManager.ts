@@ -94,6 +94,7 @@ export class TerminalSessionManager {
   private lastSentResize: { cols: number; rows: number } | null = null;
   private isPanelResizeDragging = false;
   private hadFocusBeforeDetach = false;
+  private _previewMode = false;
 
   // Timing for startup performance measurement
   private initStartTime: number = 0;
@@ -458,6 +459,19 @@ export class TerminalSessionManager {
     }
   }
 
+  setPreviewMode(enabled: boolean) {
+    this._previewMode = enabled;
+  }
+
+  async restoreFromSnapshot(): Promise<boolean> {
+    const snapshot = await this.fetchSnapshot();
+    if (snapshot) {
+      this.applySnapshot(snapshot);
+      return true;
+    }
+    return false;
+  }
+
   registerActivityListener(listener: () => void): () => void {
     this.activityListeners.add(listener);
     return () => {
@@ -687,6 +701,7 @@ export class TerminalSessionManager {
   }
 
   private queuePtyResize(cols: number, rows: number, immediate = false) {
+    if (this._previewMode) return;
     const size = this.normalizeSize(cols, rows);
     if (!size) return;
     this.pendingResize = size;

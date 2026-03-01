@@ -1,12 +1,11 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { motion } from 'motion/react';
 import { Loader2 } from 'lucide-react';
 import type { MissionControlTask } from './types';
 import type { Task } from '../../types/chat';
-import { usePtyTailBuffer } from './usePtyTailBuffer';
 import { useTaskAction } from '../../hooks/useTaskBusy';
-import { useTerminalSnapshot } from './useTerminalSnapshot';
 import { RelativeTime } from '../ui/relative-time';
+import TileTerminal from './TileTerminal';
 
 interface MissionControlPaneProps {
   mcTask: MissionControlTask;
@@ -16,35 +15,6 @@ interface MissionControlPaneProps {
   onSelectTask: (task: Task) => void;
 }
 
-/**
- * Dark terminal output block used as the primary fill area in all tile tiers.
- */
-const TerminalOutputBlock: React.FC<{ lines: string[] }> = ({ lines }) => {
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [lines]);
-
-  return (
-    <div
-      ref={scrollRef}
-      className="min-h-0 flex-1 overflow-y-auto rounded-md bg-[#1a1a2e] p-2"
-    >
-      {lines.map((line, i) => (
-        <div
-          key={i}
-          className="truncate font-mono text-[11px] leading-relaxed text-[#a0a0b8]"
-        >
-          {line}
-        </div>
-      ))}
-    </div>
-  );
-};
-
 const MissionControlPane: React.FC<MissionControlPaneProps> = ({
   mcTask,
   tier,
@@ -53,14 +23,8 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
   onSelectTask,
 }) => {
   const { task, project } = mcTask;
-  const tailLines = usePtyTailBuffer(task.id);
   const actionText = useTaskAction(task.id);
   const initialPrompt = (task.metadata as any)?.initialPrompt as string | null;
-
-  const { lines: snapshotLines, loading: snapshotLoading } = useTerminalSnapshot(
-    task.id,
-    tier === 'idle'
-  );
 
   if (tier === 'idle') {
     return (
@@ -87,26 +51,10 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
           )}
         </div>
 
-        {/* Terminal snapshot body */}
-        {snapshotLoading ? (
-          <div className="mt-2 min-h-0 flex-1 space-y-1.5">
-            <div className="h-3 w-3/4 animate-pulse rounded bg-muted-foreground/10" />
-            <div className="h-3 w-1/2 animate-pulse rounded bg-muted-foreground/10" />
-            <div className="h-3 w-2/3 animate-pulse rounded bg-muted-foreground/10" />
-          </div>
-        ) : snapshotLines.length > 0 ? (
-          <div className="mt-2 min-h-0 flex-1">
-            <TerminalOutputBlock lines={snapshotLines} />
-          </div>
-        ) : initialPrompt ? (
-          <p className="mt-2 line-clamp-3 text-xs text-muted-foreground/80">
-            {initialPrompt}
-          </p>
-        ) : (
-          <div className="mt-2 flex min-h-0 flex-1 items-center justify-center">
-            <span className="text-xs text-muted-foreground/40">No terminal output</span>
-          </div>
-        )}
+        {/* Terminal content */}
+        <div className="mt-2 min-h-0 flex-1 overflow-hidden rounded-md">
+          <TileTerminal taskId={task.id} agentId={task.agentId} />
+        </div>
       </motion.div>
     );
   }
@@ -134,15 +82,9 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
             {actionText}
           </div>
         )}
-        {tailLines.length > 0 ? (
-          <div className="mt-2 min-h-0 flex-1">
-            <TerminalOutputBlock lines={tailLines} />
-          </div>
-        ) : (
-          <div className="mt-2 flex min-h-0 flex-1 items-center justify-center rounded-md bg-[#1a1a2e]">
-            <span className="text-xs text-[#a0a0b8]/40">Waiting for output...</span>
-          </div>
-        )}
+        <div className="mt-2 min-h-0 flex-1 overflow-hidden rounded-md">
+          <TileTerminal taskId={task.id} agentId={task.agentId} />
+        </div>
       </motion.div>
     );
   }
@@ -181,20 +123,10 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
         </div>
       )}
 
-      {/* Terminal output */}
-      {tailLines.length > 0 ? (
-        <div className="mt-2 min-h-0 flex-1">
-          <TerminalOutputBlock lines={tailLines} />
-        </div>
-      ) : initialPrompt ? (
-        <p className="mt-2 line-clamp-3 text-xs text-muted-foreground">
-          {initialPrompt}
-        </p>
-      ) : (
-        <div className="mt-2 flex min-h-0 flex-1 items-center justify-center rounded-md bg-[#1a1a2e]">
-          <span className="text-xs text-[#a0a0b8]/40">Waiting for output...</span>
-        </div>
-      )}
+      {/* Terminal content */}
+      <div className="mt-2 min-h-0 flex-1 overflow-hidden rounded-md">
+        <TileTerminal taskId={task.id} agentId={task.agentId} />
+      </div>
 
       {/* Awaiting input footer */}
       <div className="mt-2 flex flex-shrink-0 items-center gap-2">
