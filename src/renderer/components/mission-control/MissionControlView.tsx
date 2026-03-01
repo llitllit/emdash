@@ -14,6 +14,13 @@ interface MissionControlViewProps {
   onSelectTask: (task: Task) => void;
 }
 
+function gridCols(count: number): number {
+  if (count <= 1) return 1;
+  if (count <= 4) return 2;
+  if (count <= 9) return 3;
+  return 4;
+}
+
 const MissionControlView: React.FC<MissionControlViewProps> = ({
   projects,
   onSelectTask,
@@ -35,8 +42,9 @@ const MissionControlView: React.FC<MissionControlViewProps> = ({
     focusedPane ? tasks.find((t) => t.task.id === focusedPane.taskId) : null;
 
   const awaitingTasks = tasks.filter((t) => t.status === 'awaiting_input');
-  const runningTasks = tasks.filter((t) => t.status === 'running');
-  const idleTasks = tasks.filter((t) => t.status === 'idle');
+
+  const cols = gridCols(tasks.length);
+  const rows = Math.ceil(tasks.length / cols) || 1;
 
   // Auto-advance after approve/deny button clicks (same logic as keyboard Enter/N)
   const handleAfterAction = useCallback(() => {
@@ -81,7 +89,7 @@ const MissionControlView: React.FC<MissionControlViewProps> = ({
         onFilterChange={setFilter}
       />
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 overflow-hidden p-4">
         <LayoutGroup>
           <AnimatePresence mode="popLayout">
             {focusedMcTask ? (
@@ -92,74 +100,25 @@ const MissionControlView: React.FC<MissionControlViewProps> = ({
                 onSelectTask={onSelectTask}
               />
             ) : (
-              <div key="grid" className="flex min-h-full flex-col gap-4">
-                {/* Awaiting input section */}
-                {awaitingTasks.length > 0 && (
-                  <div>
-                    {(runningTasks.length > 0 || idleTasks.length > 0) && (
-                      <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                        Needs Attention
-                      </h3>
-                    )}
-                    <div className="grid gap-3 grid-cols-1 lg:grid-cols-2" style={{ gridAutoRows: 'minmax(280px, 1fr)' }}>
-                      {awaitingTasks.map((mcTask) => (
-                        <MissionControlPane
-                          key={mcTask.task.id}
-                          mcTask={mcTask}
-                          tier="awaiting_input"
-                          badge={mcTask.awaitingInputIndex ?? undefined}
-                          onFocus={() => focusTask(mcTask.task.id)}
-                          onSelectTask={onSelectTask}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Running section */}
-                {runningTasks.length > 0 && (
-                  <div>
-                    {(awaitingTasks.length > 0 || idleTasks.length > 0) && (
-                      <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                        Running
-                      </h3>
-                    )}
-                    <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gridAutoRows: 'minmax(220px, 1fr)' }}>
-                      {runningTasks.map((mcTask) => (
-                        <MissionControlPane
-                          key={mcTask.task.id}
-                          mcTask={mcTask}
-                          tier="running"
-                          onSelectTask={onSelectTask}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Idle section */}
-                {idleTasks.length > 0 && (
-                  <div className="flex flex-1 flex-col min-h-0">
-                    {(awaitingTasks.length > 0 || runningTasks.length > 0) && (
-                      <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                        Idle
-                      </h3>
-                    )}
-                    <div
-                      className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2"
-                      style={{ gridAutoRows: 'minmax(160px, auto)' }}
-                    >
-                      {idleTasks.map((mcTask) => (
-                        <MissionControlPane
-                          key={mcTask.task.id}
-                          mcTask={mcTask}
-                          tier="idle"
-                          onSelectTask={onSelectTask}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <div
+                key="grid"
+                className="h-full gap-3 p-0"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${cols}, 1fr)`,
+                  gridTemplateRows: `repeat(${rows}, 1fr)`,
+                }}
+              >
+                {tasks.map((mcTask) => (
+                  <MissionControlPane
+                    key={mcTask.task.id}
+                    mcTask={mcTask}
+                    tier={mcTask.status}
+                    badge={mcTask.status === 'awaiting_input' ? mcTask.awaitingInputIndex ?? undefined : undefined}
+                    onFocus={mcTask.status === 'awaiting_input' ? () => focusTask(mcTask.task.id) : undefined}
+                    onSelectTask={onSelectTask}
+                  />
+                ))}
               </div>
             )}
           </AnimatePresence>
