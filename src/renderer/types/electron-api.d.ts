@@ -1084,6 +1084,9 @@ declare global {
       getMessages: (
         conversationId: string
       ) => Promise<{ success: boolean; messages?: any[]; error?: string }>;
+      getLastAgentMessage: (
+        taskId: string
+      ) => Promise<{ success: boolean; message?: any; error?: string }>;
       getOrCreateDefaultConversation: (
         taskId: string
       ) => Promise<{ success: boolean; conversation?: any; error?: string }>;
@@ -1794,6 +1797,9 @@ export interface ElectronAPI {
   getMessages: (
     conversationId: string
   ) => Promise<{ success: boolean; messages?: any[]; error?: string }>;
+  getLastAgentMessage: (
+    taskId: string
+  ) => Promise<{ success: boolean; message?: any; error?: string }>;
   getOrCreateDefaultConversation: (
     taskId: string
   ) => Promise<{ success: boolean; conversation?: any; error?: string }>;

@@ -103,6 +103,16 @@ export function registerDatabaseIpc() {
     }
   });
 
+  ipcMain.handle('db:getLastAgentMessage', async (_, taskId: string) => {
+    try {
+      const message = await databaseService.getLastAgentMessage(taskId);
+      return { success: true, message };
+    } catch (error) {
+      log.error('Failed to get last agent message:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
   ipcMain.handle('db:deleteConversation', async (_, conversationId: string) => {
     try {
       await databaseService.deleteConversation(conversationId);

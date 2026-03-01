@@ -5,6 +5,8 @@ import type { MissionControlTask } from './types';
 import type { Task } from '../../types/chat';
 import { usePtyTailBuffer } from './usePtyTailBuffer';
 import { useTaskAction } from '../../hooks/useTaskBusy';
+import { useTaskSummary } from '../../hooks/useTaskSummary';
+import { RelativeTime } from '../ui/relative-time';
 
 interface MissionControlPaneProps {
   mcTask: MissionControlTask;
@@ -26,19 +28,44 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
   const actionText = useTaskAction(task.id);
   const initialPrompt = (task.metadata as any)?.initialPrompt as string | null;
 
+  const { lastAgentMessage, loading: summaryLoading } = useTaskSummary(task.id, tier === 'idle');
+
   if (tier === 'idle') {
     return (
       <motion.div
         layout
         layoutId={`mc-pane-${task.id}`}
         onClick={() => onSelectTask(task)}
-        className="flex cursor-pointer items-center gap-3 rounded-md border border-border/50 px-3 py-2 text-sm transition-colors hover:bg-accent"
+        className="cursor-pointer rounded-lg border border-border/60 bg-muted/20 p-3 transition-colors hover:bg-muted/40"
       >
-        <span className="h-2 w-2 flex-shrink-0 rounded-full bg-muted-foreground/30" />
-        <span className="min-w-0 flex-1 truncate font-medium">{task.name}</span>
-        <span className="flex-shrink-0 text-xs text-muted-foreground">
-          {project.name}
-        </span>
+        {/* Header */}
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 flex-shrink-0 rounded-full bg-muted-foreground/30" />
+          <span className="min-w-0 flex-1 truncate text-sm font-medium">{task.name}</span>
+          <span className="flex-shrink-0 text-xs text-muted-foreground">{project.name}</span>
+          {task.updatedAt && (
+            <RelativeTime
+              value={task.updatedAt}
+              className="flex-shrink-0 text-xs text-muted-foreground/60"
+            />
+          )}
+        </div>
+
+        {/* Initial prompt */}
+        {initialPrompt && (
+          <p className="mt-1.5 line-clamp-1 text-xs text-muted-foreground/80">{initialPrompt}</p>
+        )}
+
+        {/* Last agent message */}
+        {summaryLoading ? (
+          <div className="mt-1.5 h-3 w-3/4 animate-pulse rounded bg-muted-foreground/10" />
+        ) : (
+          lastAgentMessage && (
+            <p className="mt-1 line-clamp-2 text-xs italic text-muted-foreground/60">
+              {lastAgentMessage}
+            </p>
+          )
+        )}
       </motion.div>
     );
   }

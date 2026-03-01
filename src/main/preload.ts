@@ -482,6 +482,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('db:getOrCreateDefaultConversation', taskId),
   saveMessage: (message: any) => ipcRenderer.invoke('db:saveMessage', message),
   getMessages: (conversationId: string) => ipcRenderer.invoke('db:getMessages', conversationId),
+  getLastAgentMessage: (taskId: string) => ipcRenderer.invoke('db:getLastAgentMessage', taskId),
   deleteConversation: (conversationId: string) =>
     ipcRenderer.invoke('db:deleteConversation', conversationId),
   cleanupSessionDirectory: (args: { taskPath: string; conversationId: string }) =>
@@ -1060,6 +1061,9 @@ export interface ElectronAPI {
   getMessages: (
     conversationId: string
   ) => Promise<{ success: boolean; messages?: any[]; error?: string }>;
+  getLastAgentMessage: (
+    taskId: string
+  ) => Promise<{ success: boolean; message?: any; error?: string }>;
   deleteConversation: (conversationId: string) => Promise<{ success: boolean; error?: string }>;
   cleanupSessionDirectory: (args: {
     taskPath: string;

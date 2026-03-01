@@ -548,6 +548,32 @@ export class DatabaseService {
     return rows.map((row) => this.mapDrizzleMessageRow(row));
   }
 
+  async getLastAgentMessage(taskId: string): Promise<Message | null> {
+    if (this.disabled) return null;
+    const { db } = await getDrizzleClient();
+    const rows = await db
+      .select({
+        id: messagesTable.id,
+        conversationId: messagesTable.conversationId,
+        content: messagesTable.content,
+        sender: messagesTable.sender,
+        timestamp: messagesTable.timestamp,
+        metadata: messagesTable.metadata,
+      })
+      .from(messagesTable)
+      .innerJoin(conversationsTable, eq(messagesTable.conversationId, conversationsTable.id))
+      .where(
+        and(
+          eq(conversationsTable.taskId, taskId),
+          eq(conversationsTable.isMain, 1),
+          eq(messagesTable.sender, 'agent')
+        )
+      )
+      .orderBy(desc(messagesTable.timestamp))
+      .limit(1);
+    return rows.length > 0 ? this.mapDrizzleMessageRow(rows[0] as MessageRow) : null;
+  }
+
   async deleteConversation(conversationId: string): Promise<void> {
     if (this.disabled) return;
     const { db } = await getDrizzleClient();
