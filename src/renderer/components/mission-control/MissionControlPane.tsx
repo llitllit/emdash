@@ -33,7 +33,7 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
         layout
         layoutId={`mc-pane-${task.id}`}
         onClick={() => onSelectTask(task)}
-        className="flex h-full cursor-pointer flex-col overflow-hidden rounded-lg border border-border/60 bg-muted/20 p-3 transition-colors hover:bg-muted/40"
+        className="flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-lg border border-border/60 bg-muted/20 p-3 transition-colors hover:bg-muted/40"
       >
         {/* Row 1: dot + task name */}
         <div className="flex flex-shrink-0 items-center gap-2">
@@ -79,7 +79,7 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
         layout
         layoutId={`mc-pane-${task.id}`}
         onClick={() => onSelectTask(task)}
-        className="flex h-full cursor-pointer flex-col overflow-hidden rounded-lg border border-sky-400/20 bg-sky-400/[0.04] p-3 ring-1 ring-sky-400/30 transition-colors hover:bg-sky-400/[0.08]"
+        className="flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-lg border border-sky-400/20 bg-sky-400/[0.04] p-3 ring-1 ring-sky-400/30 transition-colors hover:bg-sky-400/[0.08]"
         style={{ boxShadow: '0 0 12px rgba(56,189,248,0.1)' }}
       >
         <div className="flex flex-shrink-0 items-center gap-2">
@@ -120,7 +120,7 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
       layout
       layoutId={`mc-pane-${task.id}`}
       onClick={onFocus}
-      className="relative flex h-full cursor-pointer flex-col overflow-hidden rounded-lg border border-orange-500/20 bg-orange-500/[0.04] p-4 ring-1 ring-orange-500/30 transition-colors hover:bg-orange-500/[0.08]"
+      className="relative flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-lg border border-orange-500/20 bg-orange-500/[0.04] p-4 ring-1 ring-orange-500/30 transition-colors hover:bg-orange-500/[0.08]"
       style={{ boxShadow: '0 0 12px rgba(249,115,22,0.12)' }}
     >
       {/* Number badge */}
