@@ -5,7 +5,8 @@ import type { MissionControlTask } from './types';
 import type { Task } from '../../types/chat';
 import { useTaskAction } from '../../hooks/useTaskBusy';
 import { RelativeTime } from '../ui/relative-time';
-import TileTerminal from './TileTerminal';
+import { TerminalPane } from '../TerminalPane';
+import { makePtyId } from '@shared/ptyId';
 
 interface MissionControlPaneProps {
   mcTask: MissionControlTask;
@@ -60,7 +61,13 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
 
         {/* Terminal content */}
         <div className="mt-2 min-h-0 flex-1 overflow-hidden rounded-md" onClick={(e) => e.stopPropagation()}>
-          <TileTerminal taskId={task.id} agentId={task.agentId} />
+          <TerminalPane
+            id={makePtyId((task.agentId || 'claude') as any, 'main', task.id)}
+            cwd={task.path || project.path}
+            providerId={task.agentId || 'claude'}
+            keepAlive
+            remote={project.sshConnectionId ? { connectionId: project.sshConnectionId } : undefined}
+          />
         </div>
       </motion.div>
     );
@@ -95,7 +102,13 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
           </div>
         )}
         <div className="mt-2 min-h-0 flex-1 overflow-hidden rounded-md" onClick={(e) => e.stopPropagation()}>
-          <TileTerminal taskId={task.id} agentId={task.agentId} />
+          <TerminalPane
+            id={makePtyId((task.agentId || 'claude') as any, 'main', task.id)}
+            cwd={task.path || project.path}
+            providerId={task.agentId || 'claude'}
+            keepAlive
+            remote={project.sshConnectionId ? { connectionId: project.sshConnectionId } : undefined}
+          />
         </div>
       </motion.div>
     );
@@ -144,7 +157,13 @@ const MissionControlPane: React.FC<MissionControlPaneProps> = ({
 
       {/* Terminal content */}
       <div className="mt-2 min-h-0 flex-1 overflow-hidden rounded-md" onClick={(e) => e.stopPropagation()}>
-        <TileTerminal taskId={task.id} agentId={task.agentId} />
+        <TerminalPane
+          id={makePtyId((task.agentId || 'claude') as any, 'main', task.id)}
+          cwd={task.path || project.path}
+          providerId={task.agentId || 'claude'}
+          keepAlive
+          remote={project.sshConnectionId ? { connectionId: project.sshConnectionId } : undefined}
+        />
       </div>
 
       {/* Awaiting input footer */}

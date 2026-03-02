@@ -4,7 +4,7 @@ import { PROVIDER_IDS } from '@shared/providers/registry';
 import { makePtyId } from '@shared/ptyId';
 import type { MissionControlTask } from './types';
 import type { Task } from '../../types/chat';
-import TileTerminal from './TileTerminal';
+import { TerminalPane } from '../TerminalPane';
 import { Button } from '../ui/button';
 
 interface MissionControlFocusedPaneProps {
@@ -58,7 +58,13 @@ const MissionControlFocusedPane: React.FC<MissionControlFocusedPaneProps> = ({
 
       {/* Terminal */}
       <div className="mt-3 min-h-0 flex-1 overflow-hidden rounded-md">
-        <TileTerminal taskId={task.id} agentId={task.agentId} />
+        <TerminalPane
+          id={makePtyId((task.agentId || 'claude') as any, 'main', task.id)}
+          cwd={task.path || project.path}
+          providerId={task.agentId || 'claude'}
+          keepAlive
+          remote={project.sshConnectionId ? { connectionId: project.sshConnectionId } : undefined}
+        />
       </div>
 
       {/* Action buttons */}
